@@ -177,6 +177,12 @@ else
 	tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe xclip
 fi
 
+# Select <v<
+tmux bind-key -T copy-mode-vi v send-keys -X begin-selection
+
+# Select using rectangle mode <C-v>
+tmux bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+
 # Page up/down <K/J>
 tmux \
 	bind-key -T copy-mode-vi K   "run-shell -b '$CURRENT_DIR/bin/smooth-scroll.bash   up    5'" \; \
