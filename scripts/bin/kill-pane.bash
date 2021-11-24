@@ -3,23 +3,24 @@ declare -r cmd=$(tmux display-message -p '#{pane_current_command}')
 
 case "$cmd" in
 
-	# Keep pane alive if running LSF job
-	nios)
+	# Keep pane alive if running jobs
+	nios|srun)
 		tmux display-message "Unable to kill-pane running '$cmd'"
 		;;
 
 	# Confirm before killing pane
 	vim|ssh)
-		tmux confirm-before -p "kill-pane running '$cmd'? (y/n)" kill-pane
+		tmux confirm-before -p "kill-pane running '$cmd'? (y/n)" kill-pane || true
+		exit 0
 		;;
 
 	# Kill pane running certain processes
-	less|bash|zsh)
+	bash|fish|less|zsh)
 		tmux kill-pane
 		;;
 
 	*)
-		tmux confirm-before -p "kill-pane running '$cmd'? (y/n)" kill-pane
+		tmux confirm-before -p "kill-pane running '$cmd'? (y/n)" kill-pane || true
 		;;
 esac
 
