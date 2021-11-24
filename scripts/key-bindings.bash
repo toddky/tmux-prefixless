@@ -177,7 +177,7 @@ else
 	tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe xclip
 fi
 
-# Select <v<
+# Select <v>
 tmux bind-key -T copy-mode-vi v send-keys -X begin-selection
 
 # Select using rectangle mode <C-v>
