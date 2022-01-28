@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 declare -r CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+declare -r bin="$CURRENT_DIR/bin"
 #set -e
 
 # Map everything into a key table instead of root
@@ -174,7 +175,7 @@ if (type copy-osc52 &>/dev/null); then
 elif (type xclip &>/dev/null); then
 	tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe xclip
 else
-	tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe xclip
+	tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe "$bin/copy-pipe.bash"
 fi
 
 # Select <v>
