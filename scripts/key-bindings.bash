@@ -32,16 +32,16 @@ tmux bind-key -T "$keytable" M-_ switch-client -l
 
 # Switch Session <M-S-Number>
 tmux \
-	bind-key -T "$keytable" 'M-!' run-shell "$CURRENT_DIR/bin/switch-session.bash next 1" \; \
-	bind-key -T "$keytable" 'M-@' run-shell "$CURRENT_DIR/bin/switch-session.bash next 2" \; \
-	bind-key -T "$keytable" 'M-#' run-shell "$CURRENT_DIR/bin/switch-session.bash next 3" \; \
-	bind-key -T "$keytable" 'M-$' run-shell "$CURRENT_DIR/bin/switch-session.bash next 4" \; \
-	bind-key -T "$keytable" 'M-%' run-shell "$CURRENT_DIR/bin/switch-session.bash next 5" \; \
-	bind-key -T "$keytable" 'M-^' run-shell "$CURRENT_DIR/bin/switch-session.bash next 6" \; \
-	bind-key -T "$keytable" 'M-&' run-shell "$CURRENT_DIR/bin/switch-session.bash next 7" \; \
-	bind-key -T "$keytable" 'M-*' run-shell "$CURRENT_DIR/bin/switch-session.bash next 8" \; \
-	bind-key -T "$keytable" 'M-(' run-shell "$CURRENT_DIR/bin/switch-session.bash next 9" \; \
-	bind-key -T "$keytable" 'M-)' run-shell "$CURRENT_DIR/bin/switch-session.bash next 0"
+	bind-key -T "$keytable" 'M-!' run-shell "$bin/switch-session.bash next 1" \; \
+	bind-key -T "$keytable" 'M-@' run-shell "$bin/switch-session.bash next 2" \; \
+	bind-key -T "$keytable" 'M-#' run-shell "$bin/switch-session.bash next 3" \; \
+	bind-key -T "$keytable" 'M-$' run-shell "$bin/switch-session.bash next 4" \; \
+	bind-key -T "$keytable" 'M-%' run-shell "$bin/switch-session.bash next 5" \; \
+	bind-key -T "$keytable" 'M-^' run-shell "$bin/switch-session.bash next 6" \; \
+	bind-key -T "$keytable" 'M-&' run-shell "$bin/switch-session.bash next 7" \; \
+	bind-key -T "$keytable" 'M-*' run-shell "$bin/switch-session.bash next 8" \; \
+	bind-key -T "$keytable" 'M-(' run-shell "$bin/switch-session.bash next 9" \; \
+	bind-key -T "$keytable" 'M-)' run-shell "$bin/switch-session.bash next 0"
 
 # Switch to next/previous window with <M-S-h/l>
 tmux \
@@ -110,7 +110,7 @@ tmux \
 
 # Close pane using kill-pane.bash
 # kill-pane.bash prevents killing panes if certain processes are running
-tmux bind-key -T "$keytable" M-w "run-shell $CURRENT_DIR/bin/kill-pane.bash ; resize-pane -y 999"
+tmux bind-key -T "$keytable" M-w "run-shell $bin/kill-pane.bash ; resize-pane -y 999"
 
 
 # ==============================================================================
@@ -119,8 +119,8 @@ tmux bind-key -T "$keytable" M-w "run-shell $CURRENT_DIR/bin/kill-pane.bash ; re
 
 # New/rename/swap window with <M-N/r/S-Left/S-Right>
 tmux \
-	bind-key -T "$keytable" M-N         "run-shell -b $CURRENT_DIR/bin/new-window-menu.bash" \; \
-	bind-key -T "$keytable" M-n         "run-shell -b $CURRENT_DIR/bin/new-window.bash" \; \
+	bind-key -T "$keytable" M-N         "run-shell -b $bin/new-window-menu.bash" \; \
+	bind-key -T "$keytable" M-n         "run-shell -b $bin/new-window.bash" \; \
 	bind-key -T "$keytable" 'S-M-Left'  'swap-window -t -1 ; select-window -t -1' \; \
 	bind-key -T "$keytable" 'S-M-Right' 'swap-window -t +1 ; select-window -t +1' \; \
 	bind-key -T "$keytable" M-r         "command-prompt 'rename-window %%'"
@@ -139,7 +139,7 @@ tmux bind-key -T "$keytable" M-= select-layout -E
 # ==============================================================================
 
 # Copy pane directory <M-d>
-tmux bind-key -T "$keytable" M-d "run-shell -b $CURRENT_DIR/bin/copy-pane-path.bash"
+tmux bind-key -T "$keytable" M-d "run-shell -b $bin/copy-pane-path.bash"
 
 # TODO: Unhardcode scratch path
 # Enter "vim-mode" <M-F>
@@ -186,10 +186,10 @@ tmux bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
 
 # Page up/down <K/J>
 tmux \
-	bind-key -T copy-mode-vi K   "run-shell -b '$CURRENT_DIR/bin/smooth-scroll.bash   up    5'" \; \
-	bind-key -T copy-mode-vi J   "run-shell -b '$CURRENT_DIR/bin/smooth-scroll.bash down    5'" \; \
-	bind-key -T copy-mode-vi C-u "run-shell -b '$CURRENT_DIR/bin/smooth-scroll.bash   up half'" \; \
-	bind-key -T copy-mode-vi C-d "run-shell -b '$CURRENT_DIR/bin/smooth-scroll.bash down half'"
+	bind-key -T copy-mode-vi K   "run-shell -b '$bin/smooth-scroll.bash   up    5'" \; \
+	bind-key -T copy-mode-vi J   "run-shell -b '$bin/smooth-scroll.bash down    5'" \; \
+	bind-key -T copy-mode-vi C-u "run-shell -b '$bin/smooth-scroll.bash   up half'" \; \
+	bind-key -T copy-mode-vi C-d "run-shell -b '$bin/smooth-scroll.bash down half'"
 
 # End of Line <L>
 tmux bind-key -T copy-mode-vi L send-keys -X end-of-line
