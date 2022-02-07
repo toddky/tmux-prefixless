@@ -27,7 +27,7 @@ Installation
 ### Via TPM (recommended)
 
 ``` tmux
-set -g @plugin 'toddyamakawa/tmux-prefixless'
+set -g @plugin 'toddky/tmux-prefixless'
 ```
 
 [//]: # (TODO: Add mannual installation.)
