@@ -74,8 +74,11 @@ tmux \
 	bind-key -T "$keytable" M-h select-pane -L \; \
 	bind-key -T "$keytable" M-l select-pane -R
 
-# Toggle zoom
+# Toggle zoom <M-f>
 tmux bind-key -T "$keytable" M-f resize-pane -Z
+
+# Toggle status <M-F>
+tmux bind-key -T "$keytable" M-F run-shell "$bin/toggle-status.bash"
 
 
 # ==============================================================================
@@ -143,7 +146,7 @@ tmux bind-key -T "$keytable" M-d "run-shell -b $bin/copy-pane-path.bash"
 
 # TODO: Unhardcode scratch path
 # Enter "vim-mode" <M-F>
-tmux bind-key -T "$keytable" M-F run-shell -b "$HOME/.tmux/plugins/tmux-scratchpad/scripts/scratch_pane.bash '~/.tmux/bin/vim-pane.bash #{pane_id}'"
+#tmux bind-key -T "$keytable" M-F run-shell -b "$HOME/.tmux/plugins/tmux-scratchpad/scripts/scratch_pane.bash '~/.tmux/bin/vim-pane.bash #{pane_id}'"
 
 # Mark pane
 tmux bind-key -T "$keytable" M-m select-pane -m
