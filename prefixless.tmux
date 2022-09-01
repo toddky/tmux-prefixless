@@ -111,9 +111,12 @@ tmux \
 	bind-key -T "$keytable" 'M-PPage' 'swap-pane -U ; resize-pane -y 999' \; \
 	bind-key -T "$keytable" 'M-NPage' 'swap-pane -D ; resize-pane -y 999'
 
-# Close pane using kill-pane.bash
+# Kill pane using kill-pane.bash
 # kill-pane.bash prevents killing panes if certain processes are running
 tmux bind-key -T "$keytable" M-w "run-shell $bin/kill-pane.bash ; resize-pane -y 999"
+
+# Force kill pane
+tmux bind-key -T "$keytable" M-W "kill-pane ; resize-pane -y 999"
 
 
 # ==============================================================================
