@@ -151,9 +151,11 @@ tmux bind-key -T "$keytable" M-d "run-shell -b $bin/copy-pane-path.bash"
 # Enter "vim-mode" <M-F>
 #tmux bind-key -T "$keytable" M-F run-shell -b "$HOME/.tmux/plugins/tmux-scratchpad/scripts/scratch_pane.bash '~/.tmux/bin/vim-pane.bash #{pane_id}'"
 
-# Mark pane
+# Mark pane <M-m>
 tmux bind-key -T "$keytable" M-m select-pane -m
 
+# Toggle input <M-x>
+tmux bind-key -T "$keytable" M-x "run-shell -b $bin/toggle-input.bash"
 
 # ==============================================================================
 # COPY-MODE-VI
