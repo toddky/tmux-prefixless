@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-declare -r cmd=$(tmux display-message -p '#{pane_current_command}')
+
+# Check if readonly
+ro="$(tmux display-message -p '#{pane_input_off}')"
+if ((ro)); then
+	tmux display-message "Unable to kill-pane that is readonly"
+	exit
+fi
+
+
+cmd="$(tmux display-message -p '#{pane_current_command}')"
 
 case "$cmd" in
 
