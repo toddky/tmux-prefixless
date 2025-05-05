@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
+# ==============================================================================
+# SETUP
+# ==============================================================================
 TMUX_PREFIXLESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin="$TMUX_PREFIXLESS_ROOT/bin"
-#set -ex
+set -ex
 
 keytable=prefixless
 
 function _bind() {
 	local key="$1" && shift
 	local cmd=("$@")
-
-	print-cmd "${cmd[@]}"
 	tmux bind-key -T "$keytable" "$key" "${cmd[@]}"
+}
+
+
+function _bind_copy() {
+	local key="$1" && shift
+	local cmd=("$@")
+	tmux bind-key -T copy-mode-vi "$key" "${cmd[@]}"
 }
 
 
@@ -172,26 +180,25 @@ _bind M-Y copy-mode
 _bind M-P choose-buffer "paste-buffer -b %%"
 
 # Copy Selection to System Clipboard <y>
-tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe "$bin/copy-pipe.bash"
+_bind_copy y send-keys -X copy-pipe "$bin/copy-pipe.bash"
 
 # Select <v>
-tmux bind-key -T copy-mode-vi v send-keys -X begin-selection
+_bind_copy v send-keys -X begin-selection
 
 # Select using rectangle mode <C-v>
-tmux bind-key -T copy-mode-vi C-v send-keys -X rectangle-toggle
+_bind_copy C-v send-keys -X rectangle-toggle
 
 # Page up/down <K/J>
-tmux \
-	bind-key -T copy-mode-vi K   "run-shell -b '$bin/smooth-scroll.bash   up    5'" \; \
-	bind-key -T copy-mode-vi J   "run-shell -b '$bin/smooth-scroll.bash down    5'" \; \
-	bind-key -T copy-mode-vi C-u "run-shell -b '$bin/smooth-scroll.bash   up half'" \; \
-	bind-key -T copy-mode-vi C-d "run-shell -b '$bin/smooth-scroll.bash down half'"
+_bind_copy K   run-shell -b "$bin/smooth-scroll.bash   up    5"
+_bind_copy J   run-shell -b "$bin/smooth-scroll.bash down    5"
+_bind_copy C-u run-shell -b "$bin/smooth-scroll.bash   up half"
+_bind_copy C-d run-shell -b "$bin/smooth-scroll.bash down half"
 
 # End of Line <L>
-tmux bind-key -T copy-mode-vi L send-keys -X end-of-line
+_bind_copy L send-keys -X end-of-line
 
 # Start of Line <H>
-tmux bind-key -T copy-mode-vi H send-keys -X start-of-line
+_bind_copy H send-keys -X start-of-line
 
 
 # ==============================================================================
@@ -205,12 +212,12 @@ _bind M-: command-prompt
 
 # TODO: Choose new key-bindings, these are replaced with switch-session
 # Choose colorscheme <M-S-1/2/3/4/5/6>
-#bind-key -T "$keytable" 'M-!' run-shell '~/.tmux/bin/colorscheme.zsh red'
-#bind-key -T "$keytable" 'M-@' run-shell '~/.tmux/bin/colorscheme.zsh yellow'
-#bind-key -T "$keytable" 'M-#' run-shell '~/.tmux/bin/colorscheme.zsh green'
-#bind-key -T "$keytable" 'M-$' run-shell '~/.tmux/bin/colorscheme.zsh blue'
-#bind-key -T "$keytable" 'M-%' run-shell '~/.tmux/bin/colorscheme.zsh purple'
-#bind-key -T "$keytable" 'M-^' run-shell '~/.tmux/bin/colorscheme.zsh black'
+#_bind 'M-!' run-shell '~/.tmux/bin/colorscheme.zsh red'
+#_bind 'M-@' run-shell '~/.tmux/bin/colorscheme.zsh yellow'
+#_bind 'M-#' run-shell '~/.tmux/bin/colorscheme.zsh green'
+#_bind 'M-$' run-shell '~/.tmux/bin/colorscheme.zsh blue'
+#_bind 'M-%' run-shell '~/.tmux/bin/colorscheme.zsh purple'
+#_bind 'M-^' run-shell '~/.tmux/bin/colorscheme.zsh black'
 
 
 # ==============================================================================
