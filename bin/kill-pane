@@ -4,10 +4,11 @@
 ro="$(tmux display-message -p '#{pane_input_off}')"
 if ((ro)); then
 	tmux display-message "Unable to kill-pane that is readonly"
-	exit
+	exit 0
 fi
 
 
+killed=0
 pane_cmd="$(tmux display-message -p '#{pane_current_command}')"
 
 case "$pane_cmd" in
@@ -19,18 +20,21 @@ case "$pane_cmd" in
 
 	# Confirm before killing pane
 	nvim|vim|ssh)
-		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane || true
-		exit 0
+		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane && killed=1
 		;;
 
 	# Kill pane running certain processes
 	bash|fish|less|zsh|man)
 		tmux kill-pane
+		killed=1
 		;;
 
 	*)
-		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane || true
+		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane && killed=1
 		;;
 esac
 
+if ((killed)); then
+	 tmux resize-pane -y 999
+fi
 

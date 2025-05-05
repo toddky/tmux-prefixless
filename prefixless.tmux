@@ -119,7 +119,7 @@ _bind 'M-NPage' 'swap-pane -D ; resize-pane -y 999'
 
 # Kill pane using kill-pane.bash
 # kill-pane.bash prevents killing panes if certain processes are running
-_bind M-w "run-shell $bin/kill-pane.bash ; resize-pane -y 999"
+_bind M-w run-shell "$run kill-pane"
 
 # Force kill pane
 _bind M-W "kill-pane ; resize-pane -y 999"
