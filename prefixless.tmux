@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
-declare -r CURRENT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-declare -r bin="$CURRENT_DIR/bin"
-#set -e
+TMUX_PREFIXLESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+bin="$TMUX_PREFIXLESS_ROOT/bin"
+#set -ex
 
-# Map everything into a key table instead of root
 keytable=prefixless
+
+function _bind() {
+	local key="$1" && shift
+	local cmd=("$@")
+
+	print-cmd "${cmd[@]}"
+	tmux bind-key -T "$keytable" "$key" "${cmd[@]}"
+}
 
 
 # ==============================================================================
 # CLIENT
 # ==============================================================================
-tmux bind-key -T "$keytable" M-Q detach-client
+_bind M-Q detach-client
 
 
 # ==============================================================================
@@ -18,67 +25,60 @@ tmux bind-key -T "$keytable" M-Q detach-client
 # ==============================================================================
 
 # Choose a session
-tmux \
-	bind-key -T "$keytable" M-a choose-session -O name\; \
-	bind-key -T "$keytable" M-A run-shell 'tmux-switch pane'
+_bind M-a choose-session -O name
+_bind M-A run-shell 'tmux-switch pane'
 
 # Switch to next/previous session with <M-S-j/k>
-tmux \
-	bind-key -T "$keytable" M-J switch-client -n \; \
-	bind-key -T "$keytable" M-K switch-client -p
+_bind M-J switch-client -n
+_bind M-K switch-client -p
 
 # Switch to last session
-tmux bind-key -T "$keytable" M-_ switch-client -l
+_bind M-_ switch-client -l
 
 # Switch Session <M-S-Number>
-tmux \
-	bind-key -T "$keytable" 'M-!' run-shell "$bin/switch-session.bash next 1" \; \
-	bind-key -T "$keytable" 'M-@' run-shell "$bin/switch-session.bash next 2" \; \
-	bind-key -T "$keytable" 'M-#' run-shell "$bin/switch-session.bash next 3" \; \
-	bind-key -T "$keytable" 'M-$' run-shell "$bin/switch-session.bash next 4" \; \
-	bind-key -T "$keytable" 'M-%' run-shell "$bin/switch-session.bash next 5" \; \
-	bind-key -T "$keytable" 'M-^' run-shell "$bin/switch-session.bash next 6" \; \
-	bind-key -T "$keytable" 'M-&' run-shell "$bin/switch-session.bash next 7" \; \
-	bind-key -T "$keytable" 'M-*' run-shell "$bin/switch-session.bash next 8" \; \
-	bind-key -T "$keytable" 'M-(' run-shell "$bin/switch-session.bash next 9" \; \
-	bind-key -T "$keytable" 'M-)' run-shell "$bin/switch-session.bash next 0"
+_bind 'M-!' run-shell "$bin/switch-session.bash next 1"
+_bind 'M-@' run-shell "$bin/switch-session.bash next 2"
+_bind 'M-#' run-shell "$bin/switch-session.bash next 3"
+_bind 'M-$' run-shell "$bin/switch-session.bash next 4"
+_bind 'M-%' run-shell "$bin/switch-session.bash next 5"
+_bind 'M-^' run-shell "$bin/switch-session.bash next 6"
+_bind 'M-&' run-shell "$bin/switch-session.bash next 7"
+_bind 'M-*' run-shell "$bin/switch-session.bash next 8"
+_bind 'M-(' run-shell "$bin/switch-session.bash next 9"
+_bind 'M-)' run-shell "$bin/switch-session.bash next 0"
 
 # Switch to next/previous window with <M-S-h/l>
-tmux \
-	bind-key -T "$keytable" 'M-<' previous-window \; \
-	bind-key -T "$keytable" 'M->' next-window     \; \
-	bind-key -T "$keytable" 'M-H' previous-window \; \
-	bind-key -T "$keytable" 'M-L' next-window
+_bind 'M-<' previous-window
+_bind 'M->' next-window
+_bind 'M-H' previous-window
+_bind 'M-L' next-window
 
 # Switch to last window
-tmux bind-key -T "$keytable" 'M--' select-window -l
+_bind 'M--' select-window -l
 
 # Select Windows <M-#>
-tmux \
-	bind-key -T "$keytable" M-1 select-window -t 1 \; \
-	bind-key -T "$keytable" M-2 select-window -t 2 \; \
-	bind-key -T "$keytable" M-3 select-window -t 3 \; \
-	bind-key -T "$keytable" M-4 select-window -t 4 \; \
-	bind-key -T "$keytable" M-5 select-window -t 5 \; \
-	bind-key -T "$keytable" M-6 select-window -t 6 \; \
-	bind-key -T "$keytable" M-7 select-window -t 7 \; \
-	bind-key -T "$keytable" M-8 select-window -t 8 \; \
-	bind-key -T "$keytable" M-9 select-window -t 9 \; \
-	bind-key -T "$keytable" M-0 select-window -t 10
+_bind M-1 select-window -t  1
+_bind M-2 select-window -t  2
+_bind M-3 select-window -t  3
+_bind M-4 select-window -t  4
+_bind M-5 select-window -t  5
+_bind M-6 select-window -t  6
+_bind M-7 select-window -t  7
+_bind M-8 select-window -t  8
+_bind M-9 select-window -t  9
+_bind M-0 select-window -t 10
 
 # Switch panes with <M-h/j/k/l>
-tmux \
-	bind-key -T "$keytable" M-k 'resize-pane -y 1 ; select-pane -U ; resize-pane -y 999' \; \
-	bind-key -T "$keytable" M-j 'resize-pane -y 1 ; select-pane -D ; resize-pane -y 999'
-tmux \
-	bind-key -T "$keytable" M-h select-pane -L \; \
-	bind-key -T "$keytable" M-l select-pane -R
+_bind M-k 'resize-pane -y 1 ; select-pane -U ; resize-pane -y 999'
+_bind M-j 'resize-pane -y 1 ; select-pane -D ; resize-pane -y 999'
+_bind M-h select-pane -L
+_bind M-l select-pane -R
 
 # Toggle zoom <M-f>
-tmux bind-key -T "$keytable" M-f resize-pane -Z
+_bind M-f resize-pane -Z
 
 # Toggle status <M-F>
-tmux bind-key -T "$keytable" M-F run-shell "$bin/toggle-status.bash"
+_bind M-F run-shell "$bin/toggle-status.bash"
 
 
 # ==============================================================================
@@ -86,37 +86,35 @@ tmux bind-key -T "$keytable" M-F run-shell "$bin/toggle-status.bash"
 # ==============================================================================
 
 # Rename session with <M-R>
-tmux bind-key -T "$keytable" M-R command-prompt 'rename-session %%'
+_bind M-R command-prompt 'rename-session %%'
 
 # I no longer kill windows, instead I kill each pane individually
 # Close window <M-Shift-W>
-#bind-key -T "$keytable" M-W confirm-before -p "kill-window #W? (y/n)" kill-window
-#bind-key -T "$keytable" M-W kill-window
+#_bind" M-W confirm-before -p "kill-window #W? (y/n)" kill-window
+#_bind" M-W kill-window
 
 # New pane with <M-S/s/V/v>
-tmux bind-key -T "$keytable" M-S "split-window -vf -c '#{pane_current_path}' ; resize-pane -y 999"
-tmux bind-key -T "$keytable" M-s "split-window -v  -c '#{pane_current_path}' ; resize-pane -y 999"
-tmux bind-key -T "$keytable" M-V "split-window -hf -c '#{pane_current_path}'"
-tmux bind-key -T "$keytable" M-v "split-window -h  -c '#{pane_current_path}'"
+_bind M-S "split-window -vf -c '#{pane_current_path}' ; resize-pane -y 999"
+_bind M-s "split-window -v  -c '#{pane_current_path}' ; resize-pane -y 999"
+_bind M-V "split-window -hf -c '#{pane_current_path}'"
+_bind M-v "split-window -h  -c '#{pane_current_path}'"
 
 # Resize pane with <M-Arrow>
-tmux \
-	bind-key -T "$keytable" M-Left  resize-pane -L \; \
-	bind-key -T "$keytable" M-Right resize-pane -R \; \
-	bind-key -T "$keytable" M-Up    resize-pane -U \; \
-	bind-key -T "$keytable" M-Down  resize-pane -D
+_bind M-Left  resize-pane -L
+_bind M-Right resize-pane -R
+_bind M-Up    resize-pane -U
+_bind M-Down  resize-pane -D
 
 # Swap pane with pane above/below with <M-PageUp/PageDown>
-tmux \
-	bind-key -T "$keytable" 'M-PPage' 'swap-pane -U ; resize-pane -y 999' \; \
-	bind-key -T "$keytable" 'M-NPage' 'swap-pane -D ; resize-pane -y 999'
+_bind 'M-PPage' 'swap-pane -U ; resize-pane -y 999'
+_bind 'M-NPage' 'swap-pane -D ; resize-pane -y 999'
 
 # Kill pane using kill-pane.bash
 # kill-pane.bash prevents killing panes if certain processes are running
-tmux bind-key -T "$keytable" M-w "run-shell $bin/kill-pane.bash ; resize-pane -y 999"
+_bind M-w "run-shell $bin/kill-pane.bash ; resize-pane -y 999"
 
 # Force kill pane
-tmux bind-key -T "$keytable" M-W "kill-pane ; resize-pane -y 999"
+_bind M-W "kill-pane ; resize-pane -y 999"
 
 
 # ==============================================================================
@@ -124,20 +122,18 @@ tmux bind-key -T "$keytable" M-W "kill-pane ; resize-pane -y 999"
 # ==============================================================================
 
 # New/rename/swap window with <M-N/r/S-Left/S-Right>
-tmux \
-	bind-key -T "$keytable" M-N         "run-shell -b $bin/new-window-menu.bash" \; \
-	bind-key -T "$keytable" M-n         "run-shell -b $bin/new-window.bash" \; \
-	bind-key -T "$keytable" 'S-M-Left'  'swap-window -t -1 ; select-window -t -1' \; \
-	bind-key -T "$keytable" 'S-M-Right' 'swap-window -t +1 ; select-window -t +1' \; \
-	bind-key -T "$keytable" M-r         "command-prompt 'rename-window %%'"
+_bind M-N         "run-shell -b $bin/new-window-menu.bash"
+_bind M-n         "run-shell -b $bin/new-window.bash"
+_bind 'S-M-Left'  'swap-window -t -1 ; select-window -t -1'
+_bind 'S-M-Right' 'swap-window -t +1 ; select-window -t +1'
+_bind M-r         "command-prompt 'rename-window %%'"
 
 # Synchronize panes on/off with with <M-Z/z>
-tmux \
-	bind-key -T "$keytable" M-Z set-window-option synchronize-panes on \; \
-	bind-key -T "$keytable" M-z set-window-option synchronize-panes off
+_bind M-Z set-window-option synchronize-panes on
+_bind M-z set-window-option synchronize-panes off
 
 # Make layout even with <M-=>
-tmux bind-key -T "$keytable" M-= select-layout -E
+_bind M-= select-layout -E
 
 
 # ==============================================================================
@@ -145,17 +141,17 @@ tmux bind-key -T "$keytable" M-= select-layout -E
 # ==============================================================================
 
 # Copy pane directory <M-d>
-tmux bind-key -T "$keytable" M-d "run-shell -b $bin/copy-pane-path.bash"
+_bind M-d "run-shell -b $bin/copy-pane-path.bash"
 
 # TODO: Unhardcode scratch path
 # Enter "vim-mode" <M-F>
-#tmux bind-key -T "$keytable" M-F run-shell -b "$HOME/.tmux/plugins/tmux-scratchpad/scripts/scratch_pane.bash '~/.tmux/bin/vim-pane.bash #{pane_id}'"
+#_bind M-F run-shell -b "$HOME/.tmux/plugins/tmux-scratchpad/scripts/scratch_pane.bash '~/.tmux/bin/vim-pane.bash #{pane_id}'"
 
 # Mark pane <M-m>
-tmux bind-key -T "$keytable" M-m select-pane -m
+_bind M-m select-pane -m
 
 # Toggle input <M-x>
-tmux bind-key -T "$keytable" M-x "run-shell -b $bin/toggle-input.bash"
+_bind M-x "run-shell -b $bin/toggle-input.bash"
 
 # ==============================================================================
 # COPY-MODE-VI
@@ -166,14 +162,14 @@ tmux set-window-option -g mode-keys vi
 plugin_dir="$HOME/.tmux/plugins"
 tmux_picker="$plugin_dir/tmux-picker/tmux-picker.sh"
 if [[ -x "$tmux_picker" ]]; then
-	tmux bind-key -T "$keytable" M-y run-shell "$tmux_picker"
+	_bind M-y run-shell "$tmux_picker"
 fi
 
 # Enter copy mode
-tmux bind-key -T "$keytable" M-Y copy-mode
+_bind M-Y copy-mode
 
 # Select from paste-buffer
-tmux bind-key -n M-P choose-buffer "paste-buffer -b %%"
+_bind M-P choose-buffer "paste-buffer -b %%"
 
 # Copy Selection to System Clipboard <y>
 tmux bind-key -T copy-mode-vi y send-keys -X copy-pipe "$bin/copy-pipe.bash"
@@ -203,10 +199,9 @@ tmux bind-key -T copy-mode-vi H send-keys -X start-of-line
 # ==============================================================================
 
 # Reload .tmux.conf
-tmux bind-key -T "$keytable" M-F5 source-file ~/.tmux.conf
+_bind M-F5 source-file ~/.tmux.conf
 
-tmux bind-key -T "$keytable" M-: command-prompt
-tmux bind-key -T "$keytable" M-P choose-buffer "paste-buffer -b %%"
+_bind M-: command-prompt
 
 # TODO: Choose new key-bindings, these are replaced with switch-session
 # Choose colorscheme <M-S-1/2/3/4/5/6>
@@ -225,5 +220,5 @@ tmux set-option -gs key-table "$keytable"
 
 # Enable/disable prefixless
 tmux bind-key -T "root" M-o "set-option -gs key-table $keytable"
-tmux bind-key -T "$keytable" M-i "set-option -gs key-table root"
+_bind M-i "set-option -gs key-table root"
 
