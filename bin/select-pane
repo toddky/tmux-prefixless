@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+direction=${1?direction missing}
+
+case "$direction" in
+	-U|-D) tmux resize-pane -y 1;;
+esac
+	
+tmux select-pane "$direction"
+
+case "$direction" in
+	-U|-D) tmux resize-pane -y 999;;
+esac
+	

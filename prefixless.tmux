@@ -78,10 +78,10 @@ _bind M-9 select-window -t  9
 _bind M-0 select-window -t 10
 
 # Switch panes with <M-h/j/k/l>
-_bind M-k 'resize-pane -y 1 ; select-pane -U ; resize-pane -y 999'
-_bind M-j 'resize-pane -y 1 ; select-pane -D ; resize-pane -y 999'
-_bind M-h select-pane -L
-_bind M-l select-pane -R
+_bind M-k run-shell "$run select-pane -U"
+_bind M-j run-shell "$run select-pane -D"
+_bind M-h run-shell "$run select-pane -L"
+_bind M-l run-shell "$run select-pane -R"
 
 # Toggle zoom <M-f>
 _bind M-f resize-pane -Z
