@@ -8,18 +8,18 @@ if ((ro)); then
 fi
 
 
-cmd="$(tmux display-message -p '#{pane_current_command}')"
+pane_cmd="$(tmux display-message -p '#{pane_current_command}')"
 
-case "$cmd" in
+case "$pane_cmd" in
 
 	# Keep pane alive if running jobs
 	nios|srun)
-		tmux display-message "Unable to kill-pane running '$cmd'"
+		tmux display-message "Unable to kill-pane running '$pane_cmd'"
 		;;
 
 	# Confirm before killing pane
 	nvim|vim|ssh)
-		tmux confirm-before -p "kill-pane running '$cmd'? (y/n)" kill-pane || true
+		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane || true
 		exit 0
 		;;
 
@@ -29,7 +29,8 @@ case "$cmd" in
 		;;
 
 	*)
-		tmux confirm-before -p "kill-pane running '$cmd'? (y/n)" kill-pane || true
+		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane || true
 		;;
 esac
+
 
