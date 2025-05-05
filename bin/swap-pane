@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+direction=${1?direction missing}
+
+tmux swap-pane "$direction"
+
+case "$direction" in
+	-U|-D) tmux resize-pane -y 999;;
+esac
+

@@ -115,15 +115,15 @@ _bind M-Up    resize-pane -U
 _bind M-Down  resize-pane -D
 
 # Swap pane with pane above/below with <M-PageUp/PageDown>
-_bind M-PPage 'swap-pane -U ; resize-pane -y 999'
-_bind M-NPage 'swap-pane -D ; resize-pane -y 999'
+_bind M-PPage run-shell "$run swap-pane -U"
+_bind M-NPage run-shell "$run swap-pane -D"
 
 # Kill pane using kill-pane.bash
 # kill-pane.bash prevents killing panes if certain processes are running
 _bind M-w run-shell "$run kill-pane"
 
 # Force kill pane
-_bind M-W "kill-pane ; resize-pane -y 999"
+_bind M-W run-shell "$run force-kill-pane"
 
 
 # ==============================================================================

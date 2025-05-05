@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+tmux kill-pane
+tmux resize-pane -y 999
