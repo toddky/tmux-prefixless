@@ -4,7 +4,8 @@
 # ==============================================================================
 TMUX_PREFIXLESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin="$TMUX_PREFIXLESS_ROOT/bin"
-set -ex
+run="$TMUX_PREFIXLESS_ROOT/bin/run.sh"
+#set -ex
 
 keytable=prefixless
 
@@ -44,16 +45,16 @@ _bind M-K switch-client -p
 _bind M-_ switch-client -l
 
 # Switch Session <M-S-Number>
-_bind 'M-!' run-shell "$bin/switch-session.bash next 1"
-_bind 'M-@' run-shell "$bin/switch-session.bash next 2"
-_bind 'M-#' run-shell "$bin/switch-session.bash next 3"
-_bind 'M-$' run-shell "$bin/switch-session.bash next 4"
-_bind 'M-%' run-shell "$bin/switch-session.bash next 5"
-_bind 'M-^' run-shell "$bin/switch-session.bash next 6"
-_bind 'M-&' run-shell "$bin/switch-session.bash next 7"
-_bind 'M-*' run-shell "$bin/switch-session.bash next 8"
-_bind 'M-(' run-shell "$bin/switch-session.bash next 9"
-_bind 'M-)' run-shell "$bin/switch-session.bash next 0"
+_bind 'M-!' run-shell "$run switch-session 1"
+_bind 'M-@' run-shell "$run switch-session 2"
+_bind 'M-#' run-shell "$run switch-session 3"
+_bind 'M-$' run-shell "$run switch-session 4"
+_bind 'M-%' run-shell "$run switch-session 5"
+_bind 'M-^' run-shell "$run switch-session 6"
+_bind 'M-&' run-shell "$run switch-session 7"
+_bind 'M-*' run-shell "$run switch-session 8"
+_bind 'M-(' run-shell "$run switch-session 9"
+_bind 'M-)' run-shell "$run switch-session 0"
 
 # Switch to next/previous window with <M-S-h/l>
 _bind 'M-<' previous-window
