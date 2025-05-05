@@ -135,7 +135,7 @@ _bind M-N       run-shell -b "$run new-window-menu"
 _bind M-n       run-shell -b "$run new-window"
 _bind S-M-Left  run-shell -b "$run swap-window -1"
 _bind S-M-Right run-shell -b "$run swap-window +1"
-_bind M-r       "command-prompt 'rename-window %%'"
+_bind M-r       command-prompt 'rename-window %%'
 
 # Synchronize panes on/off with with <M-Z/z>
 _bind M-Z set-window-option synchronize-panes on
