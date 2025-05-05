@@ -4,7 +4,7 @@
 # ==============================================================================
 TMUX_PREFIXLESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 bin="$TMUX_PREFIXLESS_ROOT/bin"
-run="$TMUX_PREFIXLESS_ROOT/bin/run.sh"
+run="'$TMUX_PREFIXLESS_ROOT/bin/run.sh'"
 #set -ex
 
 keytable=prefixless
@@ -87,7 +87,7 @@ _bind M-l select-pane -R
 _bind M-f resize-pane -Z
 
 # Toggle status <M-F>
-_bind M-F run-shell "$bin/toggle-status.bash"
+_bind M-F run-shell "$run toggle-status"
 
 
 # ==============================================================================
@@ -131,8 +131,8 @@ _bind M-W "kill-pane ; resize-pane -y 999"
 # ==============================================================================
 
 # New/rename/swap window with <M-N/r/S-Left/S-Right>
-_bind M-N         "run-shell -b $bin/new-window-menu.bash"
-_bind M-n         "run-shell -b $bin/new-window.bash"
+_bind M-N         run-shell -b "$run new-window-menu"
+_bind M-n         run-shell -b "$run new-window"
 _bind 'S-M-Left'  'swap-window -t -1 ; select-window -t -1'
 _bind 'S-M-Right' 'swap-window -t +1 ; select-window -t +1'
 _bind M-r         "command-prompt 'rename-window %%'"
@@ -150,7 +150,7 @@ _bind M-= select-layout -E
 # ==============================================================================
 
 # Copy pane directory <M-d>
-_bind M-d "run-shell -b $bin/copy-pane-path.bash"
+_bind M-d run-shell -b "$run copy-pane-path"
 
 # TODO: Unhardcode scratch path
 # Enter "vim-mode" <M-F>
@@ -160,7 +160,8 @@ _bind M-d "run-shell -b $bin/copy-pane-path.bash"
 _bind M-m select-pane -m
 
 # Toggle input <M-x>
-_bind M-x "run-shell -b $bin/toggle-input.bash"
+_bind M-x run-shell -b "$run toggle-input"
+
 
 # ==============================================================================
 # COPY-MODE-VI
@@ -181,7 +182,7 @@ _bind M-Y copy-mode
 _bind M-P choose-buffer "paste-buffer -b %%"
 
 # Copy Selection to System Clipboard <y>
-_bind_copy y send-keys -X copy-pipe "$bin/copy-pipe.bash"
+_bind_copy y send-keys -X copy-pipe "$run copy-pipe"
 
 # Select <v>
 _bind_copy v send-keys -X begin-selection
@@ -190,10 +191,10 @@ _bind_copy v send-keys -X begin-selection
 _bind_copy C-v send-keys -X rectangle-toggle
 
 # Page up/down <K/J>
-_bind_copy K   run-shell -b "$bin/smooth-scroll.bash   up    5"
-_bind_copy J   run-shell -b "$bin/smooth-scroll.bash down    5"
-_bind_copy C-u run-shell -b "$bin/smooth-scroll.bash   up half"
-_bind_copy C-d run-shell -b "$bin/smooth-scroll.bash down half"
+_bind_copy K   run-shell -b "$run smooth-scroll   up    5"
+_bind_copy J   run-shell -b "$run smooth-scroll down    5"
+_bind_copy C-u run-shell -b "$run smooth-scroll   up half"
+_bind_copy C-d run-shell -b "$run smooth-scroll down half"
 
 # End of Line <L>
 _bind_copy L send-keys -X end-of-line

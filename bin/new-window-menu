@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+run="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run.sh"
+
+options=()
+options+=('current directory' 'c' "run-shell '$run new-window'")
+if (which zsh-nnn &>/dev/null); then
+	options+=('nnn' 'n' "new-window 'zsh-nnn'")
+fi
+if (which xclip &>/dev/null); then
+	options+=('from clipboard' 'p' "run-shell '$run new-window $(xclip -o)'")
+fi
+options+=('temp directory'    't' "run-shell '$run new-window $(mktemp -d)'")
+
+exec tmux display-menu -y S \
+	-T '#[align=centre bold]New Window' \
+	"${options[@]}"
+
