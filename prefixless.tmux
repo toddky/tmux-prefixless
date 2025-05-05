@@ -103,10 +103,10 @@ _bind M-R command-prompt 'rename-session %%'
 #_bind" M-W kill-window
 
 # New pane with <M-S/s/V/v>
-_bind M-S "split-window -vf -c '#{pane_current_path}' ; resize-pane -y 999"
-_bind M-s "split-window -v  -c '#{pane_current_path}' ; resize-pane -y 999"
-_bind M-V "split-window -hf -c '#{pane_current_path}'"
-_bind M-v "split-window -h  -c '#{pane_current_path}'"
+_bind M-S run-shell "$run split-window -vf"
+_bind M-s run-shell "$run split-window -v"
+_bind M-V run-shell "$run split-window -hf"
+_bind M-v run-shell "$run split-window -h"
 
 # Resize pane with <M-Arrow>
 _bind M-Left  resize-pane -L
