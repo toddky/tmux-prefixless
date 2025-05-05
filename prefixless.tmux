@@ -115,8 +115,8 @@ _bind M-Up    resize-pane -U
 _bind M-Down  resize-pane -D
 
 # Swap pane with pane above/below with <M-PageUp/PageDown>
-_bind 'M-PPage' 'swap-pane -U ; resize-pane -y 999'
-_bind 'M-NPage' 'swap-pane -D ; resize-pane -y 999'
+_bind M-PPage 'swap-pane -U ; resize-pane -y 999'
+_bind M-NPage 'swap-pane -D ; resize-pane -y 999'
 
 # Kill pane using kill-pane.bash
 # kill-pane.bash prevents killing panes if certain processes are running
@@ -131,11 +131,11 @@ _bind M-W "kill-pane ; resize-pane -y 999"
 # ==============================================================================
 
 # New/rename/swap window with <M-N/r/S-Left/S-Right>
-_bind M-N         run-shell -b "$run new-window-menu"
-_bind M-n         run-shell -b "$run new-window"
-_bind 'S-M-Left'  'swap-window -t -1 ; select-window -t -1'
-_bind 'S-M-Right' 'swap-window -t +1 ; select-window -t +1'
-_bind M-r         "command-prompt 'rename-window %%'"
+_bind M-N       run-shell -b "$run new-window-menu"
+_bind M-n       run-shell -b "$run new-window"
+_bind S-M-Left  run-shell -b "$run swap-window -1"
+_bind S-M-Right run-shell -b "$run swap-window +1"
+_bind M-r       "command-prompt 'rename-window %%'"
 
 # Synchronize panes on/off with with <M-Z/z>
 _bind M-Z set-window-option synchronize-panes on

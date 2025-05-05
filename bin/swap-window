@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+direction=${1?direction missing}
+tmux swap-window -t "$direction"
+tmux select-window -t "$direction"
