@@ -228,6 +228,6 @@ _bind M-: command-prompt
 tmux set-option -gs key-table "$keytable"
 
 # Enable/disable prefixless
-tmux bind-key -T "root" M-o "set-option -gs key-table $keytable"
-_bind M-i "set-option -gs key-table root"
+tmux bind-key -T "root"      M-o set-option -gs key-table "$keytable"
+tmux bind-key -T "$keytable" M-i set-option -gs key-table root
 
