@@ -168,12 +168,8 @@ _bind M-x run-shell -b "$run toggle-input"
 # ==============================================================================
 tmux set-window-option -g mode-keys vi
 
-# Use tmux-picker plugin
-plugin_dir="$HOME/.tmux/plugins"
-tmux_picker="$plugin_dir/tmux-picker/tmux-picker.sh"
-if [[ -x "$tmux_picker" ]]; then
-	_bind M-y run-shell "$tmux_picker"
-fi
+# Yank
+_bind M-y run-shell "$run scratchpad '' '$run yank-pane'"
 
 # Enter copy mode
 _bind M-Y copy-mode
