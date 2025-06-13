@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+# Get pane ID
+pane_id="$1"
+shift
+if [[ -z "$pane_id" ]]; then
+	pane_id="$(tmux display-message -p '#{pane_id}')"
+fi
+
+# Get pane info
+pane_info="$(tmux display-message -t "$pane_id" -p "#{pane_left} #{pane_top} #{pane_width} #{pane_height}")"
+read x y w h <<< "$pane_info"
+
+# Run command in "scratchpad"
+pane_cmd="$@"
+tmux display-popup -B -E -E -x "$x" -y "$y" -w "$w" -h "$h" "${pane_cmd[@]}"
+
