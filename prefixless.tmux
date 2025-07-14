@@ -152,9 +152,8 @@ _bind M-= select-layout -E
 # Copy pane directory <M-d>
 _bind M-d run-shell -b "$run copy-pane-path"
 
-# TODO: Unhardcode scratch path
-# Enter "vim-mode" <M-F>
-#_bind M-F run-shell -b "$HOME/.tmux/plugins/tmux-scratchpad/scripts/scratch_pane.bash '~/.tmux/bin/vim-pane.bash #{pane_id}'"
+# Open pane in Neovim <M-O>
+_bind M-O run-shell "$run scratchpad '' '$run capture-pane |& nvim -'"
 
 # Mark pane <M-m>
 _bind M-m select-pane -m
