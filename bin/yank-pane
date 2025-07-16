@@ -55,7 +55,9 @@ all_matches['file'] = find_matches(lines, r"[-dl]([-r][-w][-x]){3}.* (\S+)", 2)
 # ==============================================================================
 # GENERATE HINTS
 # ==============================================================================
-hintchars = 'fdsavcxzrewqtgb1234567890jklmuiopyhn'
+hintchars = 'fdsavcxzrewtgb1234567890jklmuiopyhn'
+# Remove 'q' from hintchars because its used for quitting
+hintchars = hintchars.replace('q', '')
 for key, value in all_matches.items():
 	for i, match in enumerate(value):
 		try:
@@ -109,7 +111,7 @@ while True:
 	if key == '\x1b':
 		keys = ''
 		continue
-	if keys == 'q':
+	if key == 'q':
 		message('Quitting...')
 		exit(0)
 
