@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# vim: ft=python noet ts=4 sw=0 sts 
 
 # ==============================================================================
 # IMPORT
@@ -10,6 +11,14 @@ import sys
 import termios
 import tty
 
+
+# ==============================================================================
+# MESSAGE
+# ==============================================================================
+def message(msg):
+	subprocess.run(['tmux', 'display-message', msg])
+
+
 # ==============================================================================
 # CAPTURE PANE
 # ==============================================================================
@@ -19,8 +28,11 @@ if len(sys.argv) > 1:
 capture_cmd = ['tmux', 'capture-pane', '-p', '-e']
 if pane_id:
     capture_cmd += ['-t', pane_id]
+
+message('Capturing pane...')
 pane_contents = subprocess.run(capture_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True).stdout.strip()
 
+message('Parsing pane...')
 ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
 lines = [ansi_escape.sub('', line.rstrip('\n')) for line in pane_contents.split('\n')]
 
@@ -63,32 +75,36 @@ for key, value in all_matches.items():
 		try:
 			match.append(hintchars[i])
 		except IndexError:
+			# REVISIT: Support for multiple hintchars
 			continue
 
 
 # ==============================================================================
 # SCREEN
 # ==============================================================================
+message('Printing pane...')
 # REVISIT: Why do I have to print pane contents before setraw()?
-clear_screen = "\033[H\033[J"
-print(clear_screen)
+ansi_clear_screen = "\033[H\033[J"
+print(ansi_clear_screen)
 print(pane_contents, end='')
 
 fd = sys.stdin.fileno()
 orig_settings = termios.tcgetattr(fd)
 def reset_terminal():
 	termios.tcsetattr(fd, termios.TCSADRAIN, orig_settings)
-	# Show cursor
-	print("\033[?25h")
+	ansi_show_cursor = "\033[?25h"
+	print(ansi_show_cursor)
 
 atexit.register(reset_terminal)
 tty.setraw(sys.stdin.fileno())
-# Hide cursor
-print("\033[?25l")
+ansi_hide_cursor = "\033[?25h"
+print(ansi_hide_cursor)
 
 def print_hint(x, y, hint):
-	print(f'\033[{x+2};{y+1}H\033[37;44;1m{hint}\033[0m')
+	hint_color = '\033[37;44;1m'
+	print(f'\033[{x+2};{y+1}H{hint_color}{hint}\033[0m')
 
+message('Printing hints...')
 for type, matches in all_matches.items():
 	for match in matches:
 		hint = f'{type[0]}{match[4]}'
@@ -98,8 +114,7 @@ for type, matches in all_matches.items():
 # ==============================================================================
 # GETCH
 # ==============================================================================
-def message(msg):
-	subprocess.run(['tmux', 'display-message', msg])
+message('yank-pane')
 
 key = ''
 keys = ''
@@ -108,6 +123,7 @@ while True:
 	keys += key
 	message(f'Keys: {keys}')
 
+	# Clear keys if <Esc> is pressed
 	if key == '\x1b':
 		keys = ''
 		continue
@@ -115,13 +131,15 @@ while True:
 		message('Quitting...')
 		exit(0)
 
-	# find match
-	if len(keys) > 1:
-		for type, matches in all_matches.items():
-			for match in matches:
-				hint = f'{type[0]}{match[4]}'
-				if keys == hint:
-					subprocess.run(['tmux', 'set-buffer', match[0]])
-					message(f'Copied: {match[0]}')
-					exit(0)
+	# A hint is 2 keys
+	if len(keys) < 2:
+		continue
+
+	for type, matches in all_matches.items():
+		for match in matches:
+			hint = f'{type[0]}{match[4]}'
+			if keys == hint:
+				subprocess.run(['tmux', 'set-buffer', match[0]])
+				message(f'Copied: {match[0]}')
+				exit(0)
 
