@@ -21,9 +21,11 @@ cmd_output = []
 
 for line in pane_contents.splitlines():
 
+    # Ignore lines
     if re.search(exited_re, line): continue
     if re.search(timestamp_re, line): continue
 
+    # If prompt, end previous command and start new one
     matches = re.match(prompt_re, line)
     if matches:
         if in_command:
@@ -35,6 +37,7 @@ for line in pane_contents.splitlines():
         in_command = True
         continue
 
+    # Append to command output
     if in_command:
         output += f'{line}\n'
 
