@@ -7,7 +7,32 @@ if ((ro)); then
 	exit 0
 fi
 
-
+# Recursively search a process tree for a named child (depth-limited).
+# Usage: has_child <pid> <name>...
+# Echoes the matched name and returns 0, or returns 1 if not found.
+has_child() {
+	local pid=$1; shift
+	local names=("$@")
+	_has_child "$pid" 0 "${names[@]}"
+}
+_has_child() {
+	local pid=$1 depth=$2; shift 2
+	local names=("$@") children cpid exe name
+	(( depth > 3 )) && return 1
+	read -r children < /proc/"$pid"/task/"$pid"/children 2>/dev/null
+	[[ -z "$children" ]] && return 1
+	for cpid in $children; do
+		exe=$(tr '\0' '\n' < /proc/"$cpid"/cmdline 2>/dev/null | head -1)
+		exe=${exe##*/}
+		for name in "${names[@]}"; do
+			if [[ "$exe" == "$name" ]]; then
+				echo "$name"; return 0
+			fi
+		done
+		_has_child "$cpid" $((depth + 1)) "${names[@]}" && return 0
+	done
+	return 1
+}
 killed=0
 pane_cmd="$(tmux display-message -p '#{pane_current_command}')"
 
@@ -18,13 +43,24 @@ case "$pane_cmd" in
 		tmux display-message "Unable to kill-pane running '$pane_cmd'"
 		;;
 
+	# Shells: check for AI agents in the process tree before killing
+	bash|fish|zsh)
+		ai_proc="$(has_child "$(tmux display-message -p '#{pane_pid}')" claude opencode)"
+		if [[ -n "$ai_proc" ]]; then
+			tmux confirm-before -p "kill-pane running '$ai_proc'? (y/n)" kill-pane && killed=1
+		else
+			tmux kill-pane
+			killed=1
+		fi
+		;;
+
 	# Confirm before killing pane
 	nvim|vim|ssh)
 		tmux confirm-before -p "kill-pane running '$pane_cmd'? (y/n)" kill-pane && killed=1
 		;;
 
-	# Kill pane running certain processes
-	bash|fish|less|zsh|man)
+	# Kill pane immediately
+	less|man)
 		tmux kill-pane
 		killed=1
 		;;
