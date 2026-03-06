@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-notify_dir="${XDG_RUNTIME_DIR?XDG_RUNTIME_DIR not set}/tmux-notify"
+notify_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/tmux-notify"
 [[ -d "$notify_dir" ]] || { tmux display-message "No notifications"; exit 0; }
 
 # j/k are reserved for menu navigation, q closes the menu
