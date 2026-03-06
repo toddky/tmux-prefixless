@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+notify_dir="${XDG_RUNTIME_DIR?XDG_RUNTIME_DIR not set}/tmux-notify"
+[[ -d "$notify_dir" ]] || { tmux display-message "No notifications"; exit 0; }
+
+# j/k are reserved for menu navigation, q closes the menu
+keys=(a b c d e f g h i l m n o p r s t u v w x y z)
+
+# Collect notification info
+pane_ids=()
+pane_infos=()
+messages=()
+max_len=0
+
+for f in "$notify_dir"/*.txt; do
+
+	# Get pane info
+	[[ -f "$f" ]] || continue
+	pane_id="$(basename "$f" .txt)"
+	pane_info="$(tmux display-message -t "%${pane_id}" -p '#{session_name}:#{window_name}(#{window_index}).%#{pane_index}' 2>/dev/null)"
+	[[ -z "$pane_info" ]] && { rm -f "$f"; continue; }
+
+	# Append info
+	pane_ids+=("$pane_id")
+	pane_infos+=("$pane_info")
+	read -r message < "$f"
+	messages+=("$message")
+	(( ${#pane_info} > max_len )) && max_len=${#pane_info}
+done
+
+# Check for notifications
+if [[ ${#pane_ids[@]} -eq 0 ]]; then
+	tmux display-message "No notifications"
+	exit 0
+fi
+
+# Padding
+(( max_len < 20 )) && max_len=20
+
+# Display format
+display_args=(-T "Notifications" -H "bg=colour237" -s "fg=colour226")
+
+# Get display args
+i=0
+for idx in "${!pane_ids[@]}"; do
+	pane_id="${pane_ids[$idx]}"
+	padded="$(printf "%-${max_len}s" "${pane_infos[$idx]}")"
+	message="${messages[$idx]}"
+	(( ${#message} > 80 )) && message="${message:0:77}..."
+	key="${keys[$i]:-}"
+	notify_file="$(printf '%q' "$notify_dir/${pane_id}.txt")"
+	command="run-shell 'tmux switch-client -t %${pane_id} && tmux resize-pane -y 999; rm -f ${notify_file}'"
+	display_args+=("#[fg=colour45,bold]${padded} #[fg=white,nobold]${message}" "$key" "$command")
+	((i++))
+done
+
+# Display
+tmux display-menu "${display_args[@]}"
+
