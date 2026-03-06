@@ -89,6 +89,9 @@ _bind M-f resize-pane -Z
 # Toggle status <M-F>
 _bind M-F run-shell "$run toggle-status"
 
+# Notification chooser
+_bind M-u run-shell "$run notify-choose"
+
 
 # ==============================================================================
 # SESSION
