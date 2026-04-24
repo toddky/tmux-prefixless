@@ -16,7 +16,7 @@ for f in "$notify_dir"/*.txt; do
 	# Get pane info
 	[[ -f "$f" ]] || continue
 	pane_id="$(basename "$f" .txt)"
-	pane_info="$(tmux display-message -t "%${pane_id}" -p '#{session_name}:#{window_name}(#{window_index}).%#{pane_index}' 2>/dev/null)"
+	pane_info="$(tmux display-message -t "%${pane_id}" -p '#{session_name} > #{window_name}(#{window_index}).#{pane_index}' 2>/dev/null)"
 	[[ -z "$pane_info" ]] && { rm -f "$f"; continue; }
 
 	# Append info
