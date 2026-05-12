@@ -43,11 +43,11 @@ case "$pane_cmd" in
 		tmux display-message "Unable to kill-pane running '$pane_cmd'"
 		;;
 
-	# Shells: check for AI agents in the process tree before killing
+	# Shells: check for important processes in the process tree before killing
 	bash|fish|zsh)
-		ai_proc="$(has_child "$(tmux display-message -p '#{pane_pid}')" claude opencode)"
-		if [[ -n "$ai_proc" ]]; then
-			tmux confirm-before -p "kill-pane running '$ai_proc'? (y/n)" kill-pane && killed=1
+		confirm_proc="$(has_child "$(tmux display-message -p '#{pane_pid}')" claude opencode python python3 uv)"
+		if [[ -n "$confirm_proc" ]]; then
+			tmux confirm-before -p "kill-pane running '$confirm_proc'? (y/n)" kill-pane && killed=1
 		else
 			tmux kill-pane
 			killed=1
