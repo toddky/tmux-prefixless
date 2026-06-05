@@ -1,58 +1,105 @@
 #!/usr/bin/env bash
+# USAGE: notify-choose
+# DESCRIPTION: Pop a tmux menu of pending pane notifications; select to switch.
+
+# ==============================================================================
+# ENVIRONMENT
+# ==============================================================================
 notify_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/tmux-notify"
 [[ -d "$notify_dir" ]] || { tmux display-message "No notifications"; exit 0; }
 
-# j/k are reserved for menu navigation, q closes the menu
+ela_title_dir="${XDG_CACHE_HOME:-$HOME/.cache}/ela-title"
+now="$(date +%s)"
+
+# j/k are reserved for menu navigation, q closes the menu.
 keys=(a b c d e f g h i l m n o p r s t u v w x y z)
 
-# Collect notification info
 pane_ids=()
 pane_infos=()
 messages=()
-max_len=0
+message_colors=()
+ages=()
+max_info_len=0
+max_message_len=0
 
-for f in "$notify_dir"/*.txt; do
-
-	# Get pane info
-	[[ -f "$f" ]] || continue
-	pane_id="$(basename "$f" .txt)"
+# ==============================================================================
+# COLLECT NOTIFICATIONS
+# ==============================================================================
+for notify_file in "$notify_dir"/*.txt; do
+	[[ -f "$notify_file" ]] || continue
+	pane_id="$(basename "$notify_file" .txt)"
 	pane_info="$(tmux display-message -t "%${pane_id}" -p '#{session_name} > #{window_name}(#{window_index}).#{pane_index}' 2>/dev/null)"
-	[[ -z "$pane_info" ]] && { rm -f "$f"; continue; }
 
-	# Append info
+	# A pane with no info no longer exists; drop its stale notification.
+	[[ -z "$pane_info" ]] && { rm -f "$notify_file"; continue; }
+
 	pane_ids+=("$pane_id")
 	pane_infos+=("$pane_info")
-	read -r message < "$f"
+
+	# Prefer the cached ela session title over the raw notification body.
+	ela_title_file="${ela_title_dir}/${pane_id}.txt"
+	if [[ -f "$ela_title_file" ]]; then
+		read -r message < "$ela_title_file"
+		message_colors+=("colour229")
+	else
+		read -r message < "$notify_file"
+		message_colors+=("white")
+	fi
+
+	# Cap message width so the pane-info and age columns stay visible.
+	(( ${#message} > 100 )) && message="${message:0:97}..."
 	messages+=("$message")
-	(( ${#pane_info} > max_len )) && max_len=${#pane_info}
+	(( ${#message} > max_message_len )) && max_message_len=${#message}
+
+	# Age from notification file mtime. Use minutes under an hour, else hours.
+	age_seconds=$(( now - $(stat -c %Y "$notify_file") ))
+	age_minutes=$(( age_seconds / 60 ))
+	age_hours=$(( age_seconds / 3600 ))
+	if (( age_minutes < 1 )); then
+		ages+=("just now")
+	elif (( age_minutes == 1 )); then
+		ages+=("1 minute")
+	elif (( age_minutes < 60 )); then
+		ages+=("${age_minutes} minutes")
+	elif (( age_hours == 1 )); then
+		ages+=("1 hour")
+	else
+		ages+=("${age_hours} hours")
+	fi
+
+	(( ${#pane_info} > max_info_len )) && max_info_len=${#pane_info}
 done
 
-# Check for notifications
 if [[ ${#pane_ids[@]} -eq 0 ]]; then
 	tmux display-message "No notifications"
 	exit 0
 fi
 
-# Padding
-(( max_len < 20 )) && max_len=20
+# ==============================================================================
+# BUILD MENU
+# ==============================================================================
+# Floor only, so very short pane-info still leaves room for the age column.
+(( max_info_len < 20 )) && max_info_len=20
 
-# Display format
-display_args=(-T "Notifications" -H "bg=colour237" -s "fg=colour226")
+display_args=(-T "Notifications" -H "bg=colour237,fg=colour45" -s "fg=colour226" -S "fg=colour124")
 
-# Get display args
-i=0
-for idx in "${!pane_ids[@]}"; do
-	pane_id="${pane_ids[$idx]}"
-	padded="$(printf "%-${max_len}s" "${pane_infos[$idx]}")"
-	message="${messages[$idx]}"
-	(( ${#message} > 80 )) && message="${message:0:77}..."
-	key="${keys[$i]:-}"
-	notify_file="$(printf '%q' "$notify_dir/${pane_id}.txt")"
-	command="run-shell 'tmux switch-client -t %${pane_id} && tmux resize-pane -y 999; rm -f ${notify_file}'"
-	display_args+=("#[fg=colour45,bold]${padded} #[fg=white,nobold]${message}" "$key" "$command")
-	((i++))
+for index in "${!pane_ids[@]}"; do
+	pane_id="${pane_ids[$index]}"
+	padded_title="$(printf "%-${max_message_len}s" "${messages[$index]}")"
+	padded_info="$(printf "%-${max_info_len}s" "${pane_infos[$index]}")"
+	key="${keys[$index]:-}"
+	quoted_notify_file="$(printf '%q' "$notify_dir/${pane_id}.txt")"
+	menu_command="run-shell 'tmux switch-client -t %${pane_id} && tmux resize-pane -y 999; rm -f ${quoted_notify_file}'"
+
+	# Title (gold/white) then pane info (cyan) then dim age; trailing cyan so
+	# the selected row's access key stands out instead of inheriting dim gray.
+	title_field="#[fg=${message_colors[$index]},bold]${padded_title}"
+	info_field="#[fg=colour45,nobold]${padded_info}"
+	age_field="#[fg=colour245][${ages[$index]}]#[fg=colour45]"
+	display_args+=("${title_field} ${info_field} ${age_field}" "$key" "$menu_command")
 done
 
-# Display
+# ==============================================================================
+# DISPLAY
+# ==============================================================================
 tmux display-menu "${display_args[@]}"
-
