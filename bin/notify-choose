@@ -8,7 +8,7 @@
 notify_dir="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/tmux-notify"
 [[ -d "$notify_dir" ]] || { tmux display-message "No notifications"; exit 0; }
 
-ela_title_dir="${XDG_CACHE_HOME:-$HOME/.cache}/ela-title"
+title_dir="${XDG_CACHE_HOME:-$HOME/.cache}/title"
 now="$(date +%s)"
 
 # j/k are reserved for menu navigation, q closes the menu.
@@ -38,18 +38,18 @@ for notify_file in "${notify_files[@]}"; do
 	pane_ids+=("$pane_id")
 	pane_infos+=("$pane_info")
 
-	# Prefer the cached ela session title over the raw notification body.
-	ela_title_file="${ela_title_dir}/${pane_id}.txt"
-	if [[ -f "$ela_title_file" ]]; then
-		read -r message < "$ela_title_file"
+	# Prefer the cached session title over the raw notification body.
+	title_file="${title_dir}/${pane_id}.txt"
+	if [[ -f "$title_file" ]]; then
+		read -r message < "$title_file"
 		message_colors+=("colour229")
 	else
 		read -r message < "$notify_file"
 		message_colors+=("white")
 	fi
 
-	# Cap message width so the pane-info and age columns stay visible.
-	(( ${#message} > 100 )) && message="${message:0:97}..."
+	# Cap message width so rows fit the popup; wider rows draw a scroll arrow.
+	(( ${#message} > 50 )) && message="${message:0:47}..."
 	messages+=("$message")
 	(( ${#message} > max_message_len )) && max_message_len=${#message}
 
