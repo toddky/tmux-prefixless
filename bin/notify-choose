@@ -25,7 +25,9 @@ max_message_len=0
 # ==============================================================================
 # COLLECT NOTIFICATIONS
 # ==============================================================================
-for notify_file in "$notify_dir"/*.txt; do
+# Newest notification first, ordered by file mtime.
+mapfile -t notify_files < <(ls -t "$notify_dir"/*.txt 2>/dev/null)
+for notify_file in "${notify_files[@]}"; do
 	[[ -f "$notify_file" ]] || continue
 	pane_id="$(basename "$notify_file" .txt)"
 	pane_info="$(tmux display-message -t "%${pane_id}" -p '#{session_name} > #{window_name}(#{window_index}).#{pane_index}' 2>/dev/null)"
@@ -81,7 +83,7 @@ fi
 # Floor only, so very short pane-info still leaves room for the age column.
 (( max_info_len < 20 )) && max_info_len=20
 
-display_args=(-T "Notifications" -H "bg=colour237,fg=colour45" -s "fg=colour226" -S "fg=colour124")
+display_args=(-T "Notifications" -H "bg=colour237,fg=colour45" -s "fg=colour226" -S "fg=colour196")
 
 for index in "${!pane_ids[@]}"; do
 	pane_id="${pane_ids[$index]}"
