@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+# USAGE: chat-choose
+# DESCRIPTION: Pop an fzf list of the most recent agent chat per pane; select to switch.
+
+# ==============================================================================
+# ENVIRONMENT
+# ==============================================================================
+chat_dir="${XDG_DATA_HOME:-$HOME/.local/share}/agent_chats"
+[[ -d "$chat_dir" ]] || { tmux display-message "No chats"; exit 0; }
+
+title_dir="${XDG_CACHE_HOME:-$HOME/.cache}/title"
+script_self="$(realpath "$0")"
+
+# ANSI colors so fzf --ansi can render them; tmux #[...] spans do not apply here.
+gold=$'\033[1;38;5;229m'
+white=$'\033[1;37m'
+cyan=$'\033[38;5;45m'
+gray=$'\033[38;5;245m'
+reset=$'\033[0m'
+
+# ==============================================================================
+# PICK MODE
+# ==============================================================================
+# Re-invoked inside the popup. Run fzf over the prebuilt list, switch on select.
+if [[ "$1" == "--pick" ]]; then
+	list_file="$2"
+	selection="$(fzf --ansi --delimiter=$'\t' --with-nth='2..' --reverse \
+		--prompt='chat> ' --no-sort < "$list_file")"
+	rm -f "$list_file"
+	[[ -z "$selection" ]] && exit 0
+	pane_id="${selection%%$'\t'*}"
+	tmux switch-client -t "%${pane_id}" && tmux resize-pane -y 999
+	exit 0
+fi
+
+# ==============================================================================
+# COLLECT CHATS
+# ==============================================================================
+now="$(date +%s)"
+pane_ids=()
+pane_infos=()
+titles=()
+chat_bodies=()
+ages=()
+max_info_len=0
+max_message_len=0
+max_age_len=0
+
+# Resolve every live pane in one tmux call into a lookup map. A per-file
+# display-message would spawn one subprocess per chat (hundreds, ~2s total).
+declare -A pane_info_by_id
+while read -r live_id live_info; do
+	pane_info_by_id["${live_id#%}"]="$live_info"
+done < <(tmux list-panes -a -F '#{pane_id} #{session_name} > #{window_name}(#{window_index}).#{pane_index}')
+
+# Files are named YYYYMMDD_HHMMSS_<pane>.txt with many per pane. List newest
+# first by mtime, then keep each pane's most recent file via awk on $NF.
+mapfile -t chat_files < <(ls -t "$chat_dir"/*.txt 2>/dev/null | awk -F'[_/]' '!seen[$NF]++')
+for chat_file in "${chat_files[@]}"; do
+	[[ -f "$chat_file" ]] || continue
+	chat_name="$(basename "$chat_file" .txt)"
+	pane_id="${chat_name##*_}"
+	pane_info="${pane_info_by_id[$pane_id]}"
+
+	# A pane with no info no longer exists; skip but keep the chat log.
+	[[ -z "$pane_info" ]] && continue
+
+	pane_ids+=("$pane_id")
+	pane_infos+=("$pane_info")
+
+	# Always show the chat body; prefix the cached session title when one
+	# exists so both the title and the latest message are searchable.
+	read -r chat_body < "$chat_file"
+	title_file="${title_dir}/${pane_id}.txt"
+	if [[ -f "$title_file" ]]; then
+		read -r title < "$title_file"
+	else
+		title=""
+	fi
+
+	# Track the widest combined title + body so later columns align.
+	(( ${#chat_body} > 60 )) && chat_body="${chat_body:0:57}..."
+	titles+=("$title")
+	chat_bodies+=("$chat_body")
+	if [[ -n "$title" ]]; then
+		message_len=$(( ${#title} + 1 + ${#chat_body} ))
+	else
+		message_len=${#chat_body}
+	fi
+	(( message_len > max_message_len )) && max_message_len=$message_len
+
+	# Age from chat file mtime. Use minutes under an hour, else hours.
+	age_seconds=$(( now - $(stat -c %Y "$chat_file") ))
+	age_minutes=$(( age_seconds / 60 ))
+	age_hours=$(( age_seconds / 3600 ))
+	if (( age_minutes < 1 )); then
+		ages+=("just now")
+	elif (( age_minutes == 1 )); then
+		ages+=("1 minute")
+	elif (( age_minutes < 60 )); then
+		ages+=("${age_minutes} minutes")
+	elif (( age_hours == 1 )); then
+		ages+=("1 hour")
+	else
+		ages+=("${age_hours} hours")
+	fi
+
+	(( ${#pane_info} > max_info_len )) && max_info_len=${#pane_info}
+	(( ${#ages[-1]} > max_age_len )) && max_age_len=${#ages[-1]}
+done
+
+if [[ ${#pane_ids[@]} -eq 0 ]]; then
+	tmux display-message "No chats"
+	exit 0
+fi
+
+# ==============================================================================
+# BUILD LIST
+# ==============================================================================
+# Floor only, so very short pane-info still leaves room for the age column.
+(( max_info_len < 20 )) && max_info_len=20
+
+# Hidden pane id is field 1 (tab-separated); fzf hides it via --with-nth=2.. .
+# Pad the plain text before adding color so ANSI bytes do not skew alignment.
+list_file="$(mktemp)"
+for index in "${!pane_ids[@]}"; do
+	# Title (gold) and chat body (white) smooshed into one field; color tells
+	# them apart. Pad the combined plain text so later columns still align.
+	title="${titles[$index]}"
+	chat_body="${chat_bodies[$index]}"
+	if [[ -n "$title" ]]; then
+		colored_message="${gold}${title}${reset} ${white}${chat_body}${reset}"
+		plain_len=$(( ${#title} + 1 + ${#chat_body} ))
+	else
+		colored_message="${white}${chat_body}${reset}"
+		plain_len=${#chat_body}
+	fi
+	(( plain_len < max_message_len )) && colored_message+="$(printf "%$(( max_message_len - plain_len ))s" "")"
+	padded_info="$(printf "%-${max_info_len}s" "${pane_infos[$index]}")"
+	padded_age="$(printf "%-${max_age_len}s" "${ages[$index]}")"
+	row="${gray}[${padded_age}]${reset} ${colored_message} ${cyan}${padded_info}${reset}"
+	printf '%s\t%s\n' "${pane_ids[$index]}" "$row" >> "$list_file"
+done
+
+# ==============================================================================
+# DISPLAY
+# ==============================================================================
+# Fixed width sized to the content so rows have no trailing blank space:
+# [age] + space + message + space + pane info, plus fzf gutter and popup border.
+popup_width=$(( max_age_len + 2 + 1 + max_message_len + 1 + max_info_len + 4 ))
+term_width="$(tmux display-message -p '#{client_width}')"
+(( popup_width > term_width )) && popup_width=$term_width
+
+tmux display-popup -w "$popup_width" -h 80% -T " Agent Chats " -E "$script_self --pick $list_file"
