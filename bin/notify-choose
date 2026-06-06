@@ -38,10 +38,10 @@ mapfile -t notify_files < <(ls -t "$notify_dir"/*.txt 2>/dev/null)
 for notify_file in "${notify_files[@]}"; do
 	[[ -f "$notify_file" ]] || continue
 	pane_id="$(basename "$notify_file" .txt)"
-	pane_info="$(tmux display-message -t "%${pane_id}" -p '#{session_name} > #{window_name}(#{window_index}).#{pane_index}' 2>/dev/null)"
-
-	# A pane with no info no longer exists; drop its stale notification.
-	[[ -z "$pane_info" ]] && { rm -f "$notify_file"; continue; }
+	# A gone pane returns empty session/window fields; show a dim (empty) placeholder.
+	pane_info_format='#{?session_name,#{session_name} > #{window_name}(#{window_index}).#{pane_index},}'
+	pane_info="$(tmux display-message -t "%${pane_id}" -p "$pane_info_format" 2>/dev/null)"
+	[[ -z "$pane_info" ]] && pane_info="(empty)"
 
 	pane_ids+=("$pane_id")
 	pane_infos+=("$pane_info")
@@ -105,7 +105,9 @@ for index in "${!pane_ids[@]}"; do
 	padded_age="$(printf "%-${max_age_len}s" "${ages[$index]}")"
 	age_field="#[fg=${dim_gray}][${padded_age}]"
 	title_field="#[fg=${message_colors[$index]},bold]${padded_title}"
-	info_field="#[fg=${cyan},nobold]${padded_info}"
+	info_color="$cyan"
+	[[ "${pane_infos[$index]}" == "(empty)" ]] && info_color="$dim_gray"
+	info_field="#[fg=${info_color},nobold]${padded_info}"
 	display_args+=("${age_field} ${title_field} ${info_field}#[fg=${cyan}]" "$key" "$menu_command")
 done
 
