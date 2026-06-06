@@ -92,6 +92,9 @@ _bind M-F run-shell "$run toggle-status"
 # Notification chooser
 _bind M-u run-shell "$run notify-choose"
 
+# Agent chat chooser
+_bind M-U run-shell "$run chat-choose"
+
 
 # ==============================================================================
 # SESSION
