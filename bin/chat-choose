@@ -24,8 +24,9 @@ reset=$'\033[0m'
 # Re-invoked inside the popup. Run fzf over the prebuilt list, switch on select.
 if [[ "$1" == "--pick" ]]; then
 	list_file="$2"
-	selection="$(fzf --ansi --delimiter=$'\t' --with-nth='2..' --reverse \
-		--prompt='chat> ' --no-sort < "$list_file")"
+	fzf_args=(--ansi --delimiter=$'\t' --with-nth='2..' --reverse --prompt='chat> ' --no-sort)
+	fzf_args+=(--exact)
+	selection="$(fzf "${fzf_args[@]}" < "$list_file")"
 	rm -f "$list_file"
 	[[ -z "$selection" ]] && exit 0
 	pane_id="${selection%%$'\t'*}"
