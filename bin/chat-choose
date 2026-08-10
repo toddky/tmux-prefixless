@@ -66,28 +66,22 @@ for chat_file in "${chat_files[@]}"; do
 	# A pane with no info no longer exists; skip but keep the chat log.
 	[[ -z "$pane_info" ]] && continue
 
+	# No cached title means nothing to label the row with, so skip the pane.
+	title_file="${title_dir}/${pane_id}.txt"
+	[[ -f "$title_file" ]] || continue
+	read -r title < "$title_file"
+	[[ -z "$title" ]] && continue
+
 	pane_ids+=("$pane_id")
 	pane_infos+=("$pane_info")
 
-	# Always show the chat body; prefix the cached session title when one
-	# exists so both the title and the latest message are searchable.
 	read -r chat_body < "$chat_file"
-	title_file="${title_dir}/${pane_id}.txt"
-	if [[ -f "$title_file" ]]; then
-		read -r title < "$title_file"
-	else
-		title=""
-	fi
 
 	# Track the widest combined title + body so later columns align.
 	(( ${#chat_body} > 60 )) && chat_body="${chat_body:0:57}..."
 	titles+=("$title")
 	chat_bodies+=("$chat_body")
-	if [[ -n "$title" ]]; then
-		message_len=$(( ${#title} + 1 + ${#chat_body} ))
-	else
-		message_len=${#chat_body}
-	fi
+	message_len=$(( ${#title} + 1 + ${#chat_body} ))
 	(( message_len > max_message_len )) && max_message_len=$message_len
 
 	# Age from chat file mtime. Use minutes under an hour, else hours.
@@ -129,13 +123,8 @@ for index in "${!pane_ids[@]}"; do
 	# them apart. Pad the combined plain text so later columns still align.
 	title="${titles[$index]}"
 	chat_body="${chat_bodies[$index]}"
-	if [[ -n "$title" ]]; then
-		colored_message="${gold}${title}${reset} ${white}${chat_body}${reset}"
-		plain_len=$(( ${#title} + 1 + ${#chat_body} ))
-	else
-		colored_message="${white}${chat_body}${reset}"
-		plain_len=${#chat_body}
-	fi
+	colored_message="${gold}${title}${reset} ${white}${chat_body}${reset}"
+	plain_len=$(( ${#title} + 1 + ${#chat_body} ))
 	(( plain_len < max_message_len )) && colored_message+="$(printf "%$(( max_message_len - plain_len ))s" "")"
 	padded_info="$(printf "%-${max_info_len}s" "${pane_infos[$index]}")"
 	padded_age="$(printf "%-${max_age_len}s" "${ages[$index]}")"
