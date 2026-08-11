@@ -40,8 +40,8 @@ fi
 now="$(date +%s)"
 pane_ids=()
 pane_infos=()
-titles=()
-chat_bodies=()
+colored_messages=()
+message_lens=()
 ages=()
 max_info_len=0
 max_message_len=0
@@ -76,12 +76,13 @@ for chat_file in "${chat_files[@]}"; do
 	pane_infos+=("$pane_info")
 
 	read -r chat_body < "$chat_file"
-
-	# Track the widest combined title + body so later columns align.
 	(( ${#chat_body} > 60 )) && chat_body="${chat_body:0:57}..."
-	titles+=("$title")
-	chat_bodies+=("$chat_body")
+
+	# Title (gold) and chat body (white) smooshed into one field; color tells
+	# them apart. Keep the plain length so the padding pass ignores ANSI bytes.
+	colored_messages+=("${gold}${title}${reset} ${white}${chat_body}${reset}")
 	message_len=$(( ${#title} + 1 + ${#chat_body} ))
+	message_lens+=("$message_len")
 	(( message_len > max_message_len )) && max_message_len=$message_len
 
 	# Age from chat file mtime. Use minutes under an hour, else hours.
@@ -116,15 +117,10 @@ fi
 (( max_info_len < 20 )) && max_info_len=20
 
 # Hidden pane id is field 1 (tab-separated); fzf hides it via --with-nth=2.. .
-# Pad the plain text before adding color so ANSI bytes do not skew alignment.
 list_file="$(mktemp)"
 for index in "${!pane_ids[@]}"; do
-	# Title (gold) and chat body (white) smooshed into one field; color tells
-	# them apart. Pad the combined plain text so later columns still align.
-	title="${titles[$index]}"
-	chat_body="${chat_bodies[$index]}"
-	colored_message="${gold}${title}${reset} ${white}${chat_body}${reset}"
-	plain_len=$(( ${#title} + 1 + ${#chat_body} ))
+	colored_message="${colored_messages[$index]}"
+	plain_len="${message_lens[$index]}"
 	(( plain_len < max_message_len )) && colored_message+="$(printf "%$(( max_message_len - plain_len ))s" "")"
 	padded_info="$(printf "%-${max_info_len}s" "${pane_infos[$index]}")"
 	padded_age="$(printf "%-${max_age_len}s" "${ages[$index]}")"
