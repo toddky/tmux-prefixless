@@ -208,6 +208,9 @@ _bind_copy H send-keys -X start-of-line
 # MISC
 # ==============================================================================
 
+# Open ela-chats popup
+_bind 'M-Space' display-popup -E -w 85% -h 85% tmux-m-space
+
 # Reload .tmux.conf
 _bind M-F5 source-file ~/.tmux.conf
 
