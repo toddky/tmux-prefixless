@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # USAGE: popup <command>
 # DESCRIPTION: Run a command in a borderless popup laid over the active pane; it closes when the command succeeds.
+# On tmux older than 3.3 the command runs in a zoomed split instead, which closes when the command exits.
 
 # ==============================================================================
 # ARGUMENTS
@@ -13,7 +14,31 @@ command="$*"
 
 
 # ==============================================================================
-# MAIN
+# ENVIRONMENT
+# ==============================================================================
+# "3.5a" and "next-3.6" both reduce to a major and minor number.
+tmux_version="$(tmux display-message -p '#{version}')"
+IFS=. read -r major_version minor_version <<<"${tmux_version//[^0-9.]/}"
+
+# tmux 3.3 added borderless (-B) and styled (-s) popups, which the overlay needs to line up with the pane.
+supports_overlay=0
+if ((major_version > 3 || (major_version == 3 && minor_version >= 3))); then
+	supports_overlay=1
+fi
+
+
+# ==============================================================================
+# ZOOMED SPLIT
+# ==============================================================================
+# remain-on-exit is on globally, so the scratch pane turns it off for itself.
+if ((!supports_overlay)); then
+	tmux split-window -h -c '#{pane_current_path}' "$command" \; set-option -p remain-on-exit off \; resize-pane -Z
+	exit
+fi
+
+
+# ==============================================================================
+# POPUP
 # ==============================================================================
 # A status line at the top pushes every pane down on the client, so count its rows.
 pane_format='#{pane_left} #{pane_top} #{pane_width} #{pane_height}'
