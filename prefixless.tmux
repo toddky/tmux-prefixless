@@ -128,8 +128,8 @@ _bind M-W run-shell "$run force-kill-pane"
 # New/rename/swap window with <M-N/r/S-Left/S-Right>
 _bind M-N       run-shell -b "$run new-window-menu"
 _bind M-n       run-shell -b "$run new-window"
-_bind S-M-Left  run-shell -b "$run swap-window -1"
-_bind S-M-Right run-shell -b "$run swap-window +1"
+_bind S-M-Left  swap-window -t -1 '\;' select-window -t -1
+_bind S-M-Right swap-window -t +1 '\;' select-window -t +1
 _bind M-r       command-prompt 'rename-window %%'
 
 # Synchronize panes on/off with with <M-Z/z>
