@@ -1,0 +1,168 @@
+#!/usr/bin/env python3
+# vim: ft=python noet ts=4 sw=0 sts=0
+"""Redraw a pane with two-letter hints over commands and file names; typing a hint copies that text.
+
+USAGE: yank [-t target-pane]
+Meant to run in a popup laid exactly over the pane (scratchpad/popup), so the hints sit on the text they copy.
+Keys: a two-letter hint copies, <Esc> clears a half-typed hint, q quits.
+After the first key only the hints that still match stay highlighted.
+"""
+
+# ==============================================================================
+# IMPORT
+# ==============================================================================
+import argparse
+import atexit
+import re
+import subprocess
+import sys
+import termios
+import tty
+import unicodedata
+
+
+# ==============================================================================
+# ARGUMENTS
+# ==============================================================================
+parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+parser.add_argument('-t', '--target', help='tmux target pane (default: the current pane)')
+args = parser.parse_args()
+
+
+# ==============================================================================
+# HELPERS
+# ==============================================================================
+def message(text):
+	subprocess.run(['tmux', 'display-message', text])
+
+
+def display_width(text):
+	'''Terminal columns taken by text; East Asian wide characters take two.'''
+	return sum(2 if unicodedata.east_asian_width(char) in 'WF' else 1 for char in text)
+
+
+def copy(text):
+	'''Copy to the system clipboard through copy-pipe, and keep a tmux buffer for M-P.'''
+	subprocess.run(['tmux', 'set-buffer', text])
+	# scripts/run puts scripts/ on PATH, so copy-pipe is the same script copy-mode <y> uses.
+	try:
+		subprocess.run(['copy-pipe'], input=text, text=True)
+	except FileNotFoundError:
+		message('yank: copy-pipe not found; copied to a tmux buffer only')
+
+
+# ==============================================================================
+# CAPTURE PANE
+# ==============================================================================
+capture_command = ['tmux', 'capture-pane', '-p', '-e']
+if args.target:
+	capture_command += ['-t', args.target]
+pane_contents = subprocess.run(capture_command, stdout=subprocess.PIPE, text=True).stdout
+
+# One entry per pane row; keep blank rows so row numbers match the pane.
+colored_lines = pane_contents.split('\n')
+if colored_lines and colored_lines[-1] == '':
+	colored_lines.pop()
+ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
+lines = [ansi_escape.sub('', line) for line in colored_lines]
+
+
+# ==============================================================================
+# FIND MATCHES
+# ==============================================================================
+def find_matches(regex, group=1):
+	'''Return [text, row, column] for each line matching regex; column is in terminal cells.'''
+	matches = []
+	for row, line in enumerate(lines):
+		match = re.match(regex, line)
+		if not match:
+			continue
+		start = match.start(group)
+		matches.append([match.group(group), row, display_width(line[:start])])
+	return matches
+
+all_matches = {}
+
+# todd 755 bin main » <command>
+all_matches['command'] = find_matches(r".*»\s*(\S.*)")
+
+# lrwxrwxrwx 1 todd group   11 Jan  1 23:59 file -> /path/to/file
+# drwxrwxrwx 1 todd group    0 Jan  1 23:59 dir/
+# -rw-r--r-- 1 todd group  10K Jan  1 23:59 file.txt
+all_matches['file'] = find_matches(r"[-dl]([-r][-w][-x]){3}.* (\S+)", 2)
+
+
+# ==============================================================================
+# GENERATE HINTS
+# ==============================================================================
+# 'q' quits, so it can't be a hint character.
+hint_chars = 'fdsavcxzrewtgb1234567890jklmuiopyhn'
+hints = {}
+for kind, matches in all_matches.items():
+	# REVISIT: Support more matches than hint characters.
+	for match, hint_char in zip(matches, hint_chars):
+		hints[f'{kind[0]}{hint_char}'] = match
+
+
+# ==============================================================================
+# SCREEN
+# ==============================================================================
+# The whole match is highlighted in muted blue and its hint sits on its first two cells in light blue.
+CLEAR_SCREEN = '\033[H\033[2J'
+HIDE_CURSOR = '\033[?25l'
+SHOW_CURSOR = '\033[?25h'
+RESET = '\033[0m'
+HIGHLIGHT_COLOR = '\033[38;5;255;48;5;24m'
+HINT_COLOR = '\033[1;38;5;0;48;5;117m'
+
+fd = sys.stdin.fileno()
+original_settings = termios.tcgetattr(fd)
+
+def restore_terminal():
+	termios.tcsetattr(fd, termios.TCSADRAIN, original_settings)
+	sys.stdout.write(SHOW_CURSOR)
+	sys.stdout.flush()
+
+atexit.register(restore_terminal)
+tty.setraw(fd)
+
+def draw(typed=''):
+	'''Redraw the pane, then highlight every match whose hint starts with what has been typed so far.'''
+	# Place every row and hint by absolute position; a stray newline on the last row would scroll the popup.
+	screen = [HIDE_CURSOR, CLEAR_SCREEN]
+	for row, colored_line in enumerate(colored_lines):
+		screen.append(f'\033[{row + 1};1H{colored_line}{RESET}')
+	for hint, (text, row, column) in hints.items():
+		if not hint.startswith(typed):
+			continue
+		screen.append(f'\033[{row + 1};{column + 1}H{HIGHLIGHT_COLOR}{text}{RESET}')
+		screen.append(f'\033[{row + 1};{column + 1}H{HINT_COLOR}{hint}{RESET}')
+	sys.stdout.write(''.join(screen))
+	sys.stdout.flush()
+
+draw()
+
+
+# ==============================================================================
+# READ KEYS
+# ==============================================================================
+typed = ''
+while True:
+	key = sys.stdin.read(1)
+	if key == 'q':
+		sys.exit(0)
+	if key == '\x1b':
+		typed = ''
+		draw()
+		continue
+
+	candidates = [hint for hint in hints if hint.startswith(typed + key)]
+	if not candidates:
+		continue
+	typed += key
+	if typed in hints:
+		text = hints[typed][0]
+		copy(text)
+		message(f'Copied: {text}')
+		sys.exit(0)
+	draw(typed)
