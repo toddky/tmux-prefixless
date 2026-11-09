@@ -24,4 +24,11 @@ read -r pane_left pane_top pane_width pane_height status_rows < <(tmux display-m
 popup_args=(-B -E -E)
 popup_args+=(-x "$pane_left" -y "$((status_rows + pane_top + pane_height))")
 popup_args+=(-w "$pane_width" -h "$pane_height")
+
+# Popups default to the terminal's background; use the active pane's style so redrawn text looks the same.
+popup_style="$(tmux display-message -p '#{window-active-style}')"
+if [[ -n "$popup_style" ]]; then
+	popup_args+=(-s "$popup_style")
+fi
+
 tmux display-popup "${popup_args[@]}" "$command"
