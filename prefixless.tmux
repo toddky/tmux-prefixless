@@ -154,7 +154,7 @@ _bind M-O run-shell "$run scratchpad '' '$run capture-pane |& nvim -'"
 _bind M-m select-pane -m
 
 # Toggle input <M-x>
-_bind M-x run-shell -b "$run toggle-input"
+_bind M-x if-shell -F '#{pane_input_off}' 'select-pane -e' 'select-pane -d'
 
 
 # ==============================================================================
