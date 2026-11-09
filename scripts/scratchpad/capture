@@ -86,4 +86,5 @@ for my $line (@lines) {
 for my $block (@blocks) {
 	print "\$ $block->{command}\n";
 	print "$block->{output}\n";
+	print "\n";
 }
