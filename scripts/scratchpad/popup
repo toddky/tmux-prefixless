@@ -15,10 +15,13 @@ command="$*"
 # ==============================================================================
 # MAIN
 # ==============================================================================
-# display-popup expands formats in -x/-y but not -w/-h, so the size has to come from the pane here.
-read -r pane_width pane_height < <(tmux display-message -p '#{pane_width} #{pane_height}')
+# A status line at the top pushes every pane down on the client, so count its rows.
+pane_format='#{pane_left} #{pane_top} #{pane_width} #{pane_height}'
+status_format='#{?#{&&:#{==:#{status-position},top},#{!=:#{status},off}},#{?#{==:#{status},on},1,#{status}},0}'
+read -r pane_left pane_top pane_width pane_height status_rows < <(tmux display-message -p "$pane_format $status_format")
 
+# A borderless popup's top row lands at -y minus its height, so -y is the row just below the pane.
 popup_args=(-B -E -E)
-popup_args+=(-x '#{popup_pane_left}' -y '#{popup_pane_top}')
+popup_args+=(-x "$pane_left" -y "$((status_rows + pane_top + pane_height))")
 popup_args+=(-w "$pane_width" -h "$pane_height")
 tmux display-popup "${popup_args[@]}" "$command"
