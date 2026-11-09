@@ -145,7 +145,7 @@ _bind M-= select-layout -E
 # ==============================================================================
 
 # Copy pane directory <M-d>
-_bind M-d run-shell -b "$run copy-pane-path"
+_bind M-d run-shell -b "printf '%s\n' #{q:pane_current_path} | $run copy-pipe"
 
 # Open pane in Neovim <M-O>
 _bind M-O run-shell "$run scratchpad '' '$run capture-pane |& nvim -'"
