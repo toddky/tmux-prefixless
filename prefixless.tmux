@@ -44,18 +44,6 @@ _bind M-K switch-client -p
 # Switch to last session
 _bind M-_ switch-client -l
 
-# Switch Session <M-S-Number>
-_bind 'M-!' run-shell "$run switch-session 1"
-_bind 'M-@' run-shell "$run switch-session 2"
-_bind 'M-#' run-shell "$run switch-session 3"
-_bind 'M-$' run-shell "$run switch-session 4"
-_bind 'M-%' run-shell "$run switch-session 5"
-_bind 'M-^' run-shell "$run switch-session 6"
-_bind 'M-&' run-shell "$run switch-session 7"
-_bind 'M-*' run-shell "$run switch-session 8"
-_bind 'M-(' run-shell "$run switch-session 9"
-_bind 'M-)' run-shell "$run switch-session 0"
-
 # Switch to next/previous window with <M-S-h/l>
 _bind 'M-<' previous-window
 _bind 'M->' next-window
@@ -217,7 +205,7 @@ _bind M-F5 source-file -F '#{config_files}'
 
 _bind M-: command-prompt
 
-# TODO: Choose new key-bindings, these are replaced with switch-session
+# TODO: Choose new key-bindings, or reuse <M-S-Number> now that it is free
 # Choose colorscheme <M-S-1/2/3/4/5/6>
 #_bind 'M-!' run-shell '~/.tmux/bin/colorscheme.zsh red'
 #_bind 'M-@' run-shell '~/.tmux/bin/colorscheme.zsh yellow'

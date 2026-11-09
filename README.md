@@ -43,17 +43,6 @@ tmux list-keys -T prefixless
 
 Slightly modifiedresult below:
 ```sh
-M-!       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 1"
-M-@       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 2"
-"M-#"     run-shell "$PLUGIN_PATH/bin/switch-session.bash next 3"
-"M-$"     run-shell "$PLUGIN_PATH/bin/switch-session.bash next 4"
-M-%       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 5"
-M-^       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 6"
-M-&       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 7"
-M-*       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 8"
-M-(       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 9"
-M-)       run-shell "$PLUGIN_PATH/bin/switch-session.bash next 0"
-
 M--       select-window -l
 M-1       select-window -t 1
 M-2       select-window -t 2
