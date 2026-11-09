@@ -1,0 +1,89 @@
+#!/usr/bin/env perl
+# USAGE: capture [-t target-pane]
+# DESCRIPTION: Print a pane's history as `$ command` blocks, one per prompt, dropping timing and exit-status lines.
+use strict;
+use warnings;
+use utf8;
+use Getopt::Long;
+
+binmode STDOUT, ':encoding(UTF-8)';
+
+# ==============================================================================
+# ARGUMENTS
+# ==============================================================================
+my $target;
+GetOptions('t|target=s' => \$target) or die "USAGE: capture [-t target-pane]\n";
+
+
+# ==============================================================================
+# PATTERNS
+# ==============================================================================
+# "todd 750 tmux-prefixless master » git status" starts a command, here "git status".
+my $prompt_pattern = qr/^todd.*»\s*(.*)$/;
+
+# The bash preexec hook prints these around every command; they are noise in a transcript.
+my $timestamp_pattern = qr/\[\d{2}:\d{2}:\d{2}\] (Started|Finished)/;
+my $exited_pattern    = qr/\(exited \d+\)/;
+
+
+# ==============================================================================
+# HELPERS
+# ==============================================================================
+sub trim {
+	my ($text) = @_;
+	$text =~ s/^\s+|\s+$//g;
+	return $text;
+}
+
+
+# ==============================================================================
+# CAPTURE PANE
+# ==============================================================================
+my @capture_command = ('tmux', 'capture-pane', '-p', '-S', '-');
+push @capture_command, '-t', $target if defined $target;
+
+open(my $pane, '-|', @capture_command) or die "ERROR: cannot run tmux capture-pane: $!\n";
+binmode $pane, ':encoding(UTF-8)';
+my @lines = <$pane>;
+close $pane;
+chomp @lines;
+
+
+# ==============================================================================
+# SPLIT INTO COMMANDS
+# ==============================================================================
+my @blocks;          # One { command, output } hash per finished command, in order.
+my $command;         # The command typed at the most recent prompt; undef before the first prompt.
+my $output = '';     # Everything printed since that prompt.
+
+for my $line (@lines) {
+	next if $line =~ $timestamp_pattern;
+	next if $line =~ $exited_pattern;
+
+	if ($line =~ $prompt_pattern) {
+		my $next_command = trim($1);
+
+		# A new prompt means the previous command finished; keep it only if it printed something.
+		if (defined $command && $command ne '' && trim($output) ne '') {
+			push @blocks, { command => $command, output => trim($output) };
+		}
+
+		$command = $next_command;
+		$output  = '';
+		next;
+	}
+
+	# Output before the first prompt belongs to no command, so it is skipped.
+	$output .= "$line\n" if defined $command;
+}
+
+# The last command has no prompt after it, so it is still running (usually this script) and is left out.
+
+
+# ==============================================================================
+# PRINT COMMANDS
+# ==============================================================================
+for my $block (@blocks) {
+	print "\$ $block->{command}\n";
+	print "$block->{output}\n";
+}
