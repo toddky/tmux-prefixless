@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-run="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run.sh"
+run="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/run"
 
 options=()
 options+=('current directory' 'c' "run-shell '$run new-window'")

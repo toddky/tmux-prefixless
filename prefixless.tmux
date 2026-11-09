@@ -3,8 +3,7 @@
 # SETUP
 # ==============================================================================
 TMUX_PREFIXLESS_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-bin="$TMUX_PREFIXLESS_ROOT/bin"
-run="'$TMUX_PREFIXLESS_ROOT/bin/run.sh'"
+run="'$TMUX_PREFIXLESS_ROOT/scripts/run'"
 #set -ex
 
 keytable=prefixless
@@ -66,7 +65,7 @@ _bind M-9 select-window -t  9
 _bind M-0 select-window -t 10
 
 # Switch panes with <M-h/j/k/l>
-# 2026-11-05: Bound directly, not via run.sh; forking a script per keypress took 100+ ms on network filesystems.
+# 2026-11-05: Bound directly, not via scripts/run; forking a script per keypress took 100+ ms on network filesystems.
 _bind M-k resize-pane -y 1 '\;' select-pane -U '\;' resize-pane -y 999
 _bind M-j resize-pane -y 1 '\;' select-pane -D '\;' resize-pane -y 999
 _bind M-h select-pane -L
