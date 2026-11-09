@@ -118,7 +118,7 @@ _bind M-NPage swap-pane -D '\;' resize-pane -y 999
 _bind M-w run-shell "$run kill-pane"
 
 # Force kill pane
-_bind M-W run-shell "$run force-kill-pane"
+_bind M-W kill-pane '\;' resize-pane -y 999
 
 
 # ==============================================================================
