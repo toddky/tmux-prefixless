@@ -1,4 +1,9 @@
 #!/usr/bin/env bash
+# USAGE: run <script> [args...]
+# DESCRIPTION: Run a script by its path under scripts/, with scripts/ on PATH so scripts can call each other.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export PATH="$SCRIPT_DIR:$PATH"
-exec "$@"
+
+# Resolve against SCRIPT_DIR because exec treats a name with a slash, like scratchpad/popup, as relative to cwd.
+script_name="$1" && shift
+exec "$SCRIPT_DIR/$script_name" "$@"
