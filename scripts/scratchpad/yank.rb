@@ -220,6 +220,12 @@ all_matches['command'] = find_matches(lines, /\A.*»\s*(\S.*)/, 1)
 # -rw-r--r-- 1 todd group  10K Jan  1 23:59 file.txt
 all_matches['file'] = find_matches(lines, /\A[-dl]([-r][-w][-x]){3}.* (\S+)/, 2)
 
+# commit a2414681c265ffc8fe98c6f40d7cf0e71a93c7a4
+# 27ad5ac [4 minutes ago ] Todd Yamakawa        : (HEAD -> master) 📝 README.md: Point M-y at scratchpad/yank.
+# * | 737aca2 ✨ scripts/scratchpad/yank.rb: Add hints for paths.
+# The hash must hold a letter, so a line like "1234567 bytes" from wc is not taken for a commit.
+all_matches['git'] = find_matches(lines, /\A[*|\/\\ ]*(?:commit )?(?=\d*[a-f])([0-9a-f]{7,40})\b/, 1)
+
 # A symlink target already has a file hint, so a path that starts on a taken cell gets no second one.
 taken_cells = Set.new
 all_matches.each_value do |matches|
