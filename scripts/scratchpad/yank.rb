@@ -218,7 +218,9 @@ all_matches['command'] = find_matches(lines, /\A.*»\s*(\S.*)/, 1)
 # lrwxrwxrwx 1 todd group   11 Jan  1 23:59 file -> /path/to/file
 # drwxrwxrwx 1 todd group    0 Jan  1 23:59 dir/
 # -rw-r--r-- 1 todd group  10K Jan  1 23:59 file.txt
-all_matches['file'] = find_matches(lines, /\A[-dl]([-r][-w][-x]){3}.* (\S+)/, 2)
+# -rwxr-x--- 1 todd group  976 Sep  1 14:25  script*
+# ls -F marks executables with a trailing "*", which is not part of the name.
+all_matches['file'] = find_matches(lines, /\A[-dl]([-r][-w][-x]){3}.* (\S+?)\*?\s*\z/, 2)
 
 # commit a2414681c265ffc8fe98c6f40d7cf0e71a93c7a4
 # 27ad5ac [4 minutes ago ] Todd Yamakawa        : (HEAD -> master) 📝 README.md: Point M-y at scratchpad/yank.
