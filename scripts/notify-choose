@@ -2,6 +2,9 @@
 # USAGE: notify-choose
 # DESCRIPTION: Pop a tmux menu of pending pane notifications; select to switch.
 
+# extglob lets us strip tmux #[...] style codes from notification bodies below.
+shopt -s extglob
+
 # ==============================================================================
 # ENVIRONMENT
 # ==============================================================================
@@ -38,10 +41,11 @@ mapfile -t notify_files < <(ls -t "$notify_dir"/*.txt 2>/dev/null)
 for notify_file in "${notify_files[@]}"; do
 	[[ -f "$notify_file" ]] || continue
 	pane_id="$(basename "$notify_file" .txt)"
-	# A gone pane returns empty session/window fields; show a dim (empty) placeholder.
+	# A gone pane returns empty session/window fields; skip it.
 	pane_info_format='#{?session_name,#{session_name} > #{window_name}(#{window_index}).#{pane_index},}'
 	pane_info="$(tmux display-message -t "%${pane_id}" -p "$pane_info_format" 2>/dev/null)"
-	[[ -z "$pane_info" ]] && pane_info="(empty)"
+	# Pane is gone; skip without deleting the notify file.
+	[[ -z "$pane_info" ]] && continue
 
 	pane_ids+=("$pane_id")
 	pane_infos+=("$pane_info")
@@ -55,6 +59,10 @@ for notify_file in "${notify_files[@]}"; do
 		read -r message < "$notify_file"
 		message_colors+=("$white")
 	fi
+
+	# Strip tmux #[...] style codes leaked from shell prompts. They render
+	# zero-width in the popup, so padding by their raw length skews columns.
+	message="${message//#\[*([^]])\]/}"
 
 	# Cap message width so rows fit the popup; wider rows draw a scroll arrow.
 	(( ${#message} > 50 )) && message="${message:0:47}..."
@@ -96,7 +104,12 @@ display_args=(-T "Notifications" -H "bg=${bg_gray},fg=${cyan}" -s "fg=${yellow}"
 
 for index in "${!pane_ids[@]}"; do
 	pane_id="${pane_ids[$index]}"
-	padded_title="$(printf "%-${max_message_len}s" "${messages[$index]}")"
+	# Pad by character count, not printf's byte count: multibyte glyphs like
+	# » are 2 bytes but 1 column, so %-Ns would leave the row a column short.
+	message="${messages[$index]}"
+	pad=$(( max_message_len - ${#message} ))
+	(( pad < 0 )) && pad=0
+	padded_title="${message}$(printf '%*s' "$pad" '')"
 	padded_info="$(printf "%-${max_info_len}s" "${pane_infos[$index]}")"
 	key="${keys[$index]:-}"
 	quoted_notify_file="$(printf '%q' "$notify_dir/${pane_id}.txt")"
