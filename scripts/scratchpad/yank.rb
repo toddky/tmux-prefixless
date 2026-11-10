@@ -36,6 +36,10 @@ HINT_COLOR = "\e[1;38;5;0;48;5;117m"
 MISSING_HIGHLIGHT_COLOR = "\e[38;5;255;48;5;124m"
 MISSING_HINT_COLOR = "\e[1;38;5;0;48;5;210m"
 
+# The popup looks just like the pane, so a yellow badge in the top right shows that yank is waiting for keys.
+BADGE_TEXT = ' YANK '
+BADGE_COLOR = "\e[1;38;5;0;48;5;220m"
+
 # ls is /usr/bin/ls, see ~/.bashrc or ../tmux, not https://host/a or a/b, and /a/b.py:12 is /a/b.py
 # Absolute, ~/, ./ and ../ paths; the lookbehind skips the "/b" in "a/b" or "日本/b", and find_paths handles ":".
 PATH_PATTERN = %r{(?<![\p{Word}.~/-])(?:~|\.\.?)?/[^\s'"`:;,|()<>\[\]\{\}]*}
@@ -188,6 +192,10 @@ def draw(colored_lines, hints, typed)
 		screen.append("#{position}#{highlight_color}#{match[:text]}#{RESET}")
 		screen.append("#{position}#{hint_color}#{hint}#{RESET}")
 	end
+	# Drawn last so no highlight covers it.
+	_rows, columns = $stdout.winsize
+	badge_column = [columns - BADGE_TEXT.length + 1, 1].max
+	screen.append("\e[1;#{badge_column}H#{BADGE_COLOR}#{BADGE_TEXT}#{RESET}")
 	$stdout.write(screen.join)
 	$stdout.flush
 	return nil
