@@ -131,14 +131,28 @@ def find_paths(lines)
 	return matches
 end
 
-# check_missing(['/usr/bin/ls', '/no/such']) -> [false, true]
-# A stat on a hung NFS mount never returns, so a child does the checks and unanswered files count as present.
-def check_missing(files)
-	return [] if files.empty?
+# find_repo_dir('/home/todd/repo/scripts') -> '/home/todd/repo'
+# find_repo_dir('/tmp') -> nil
+def find_repo_dir(dir)
+	current_dir = dir
+	loop do
+		# A submodule's .git is a file, so exist? finds the submodule's top, which is where git prints paths from.
+		return current_dir if File.exist?(File.join(current_dir, '.git'))
+		parent_dir = File.dirname(current_dir)
+		return nil if parent_dir == current_dir
+		current_dir = parent_dir
+	end
+end
+
+# check_missing(2) { ['/usr/bin/ls', '/no/such'] } -> [false, true]
+# A stat on a hung NFS mount never returns, so a child runs the block and the checks; unanswered files count as present.
+def check_missing(num_files)
+	return [] if num_files == 0
 	reader, writer = IO.pipe
 	child_pid = fork do
 		reader.close
 		writer.sync = true
+		files = yield
 		files.each { |file| writer.puts(File.exist?(file) ? 'present' : 'missing') }
 		exit!(0)
 	end
@@ -146,7 +160,7 @@ def check_missing(files)
 
 	answers = []
 	deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + EXISTS_TIMEOUT_SECONDS
-	while answers.length < files.length
+	while answers.length < num_files
 		seconds_left = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
 		break if seconds_left <= 0
 		break unless reader.wait_readable(seconds_left)
@@ -156,13 +170,13 @@ def check_missing(files)
 	end
 	reader.close
 
-	if answers.length < files.length
-		num_unchecked = files.length - answers.length
+	if answers.length < num_files
+		num_unchecked = num_files - answers.length
 		message("WARNING: yank: path checks passed #{EXISTS_TIMEOUT_SECONDS}s, so #{num_unchecked} paths stay blue; check for a hung mount")
 		Process.kill(:KILL, child_pid)
 	end
 	Process.detach(child_pid)
-	return files.each_index.map { |index| answers.fetch(index, false) }
+	return Array.new(num_files) { |index| answers.fetch(index, false) }
 end
 
 # hint_suffixes(3, 'f') -> ['f', 'd', 's']
@@ -247,23 +261,45 @@ all_matches['file'] = find_matches(lines, /\A[-dl]([-r][-w][-x]){3}.* (\S+?)\*?\
 # The hash must hold a letter, so a line like "1234567 bytes" from wc is not taken for a commit.
 all_matches['git'] = find_matches(lines, /\A[*|\/\\ ]*(?:commit )?(?=\d*[a-f])([0-9a-f]{7,40})\b/, 1)
 
+# 15      5       scripts/scratchpad/yank.rb
+#  scripts/scratchpad/yank.rb | 20 +++++++++++++-------
+# +++ b/scripts/scratchpad/yank.rb
+# git prints these paths from the top of the repo, with no leading "/" or "./".
+repo_files = []
+repo_files.concat(find_matches(lines, /\A(?:\d+|-)\s+(?:\d+|-)\s+(\S+)\s*\z/, 1))
+repo_files.concat(find_matches(lines, /\A (\S+)\s+\|\s+(?:\d+|Bin)\b/, 1))
+repo_files.concat(find_matches(lines, %r{\A(?:---|\+\+\+) [ab]/(\S+)}, 1))
+
+#         modified:   scripts/scratchpad/yank.rb
+#         renamed:    old.rb -> new.rb
+# git status prints these from the current directory; a rename hints its new name.
+status_pattern = /\A\s+(?:modified|new file|deleted|renamed|copied|typechange|both modified|both added):\s+(?:\S+ -> )?(\S+)\s*\z/
+status_files = find_matches(lines, status_pattern, 1)
+
 # A symlink target already has a file hint, so a path that starts on a taken cell gets no second one.
 taken_cells = Set.new
-all_matches.each_value do |matches|
+[*all_matches.values, repo_files, status_files].each do |matches|
 	matches.each { |match| taken_cells.add([match[:row], match[:column]]) }
 end
 paths = find_paths(lines)
 paths = paths.reject { |match| taken_cells.include?([match[:row], match[:column]]) }
 
-# Only a local pane's paths can be checked, so a remote pane's paths all stay blue.
+# Only a local pane's files can be checked, so a remote pane's paths all stay blue.
+checked_files = paths + status_files + repo_files
 unless REMOTE_COMMANDS.include?(pane_command)
-	full_files = paths.map { |match| File.expand_path(match[:text], pane_dir) }
-	missing = check_missing(full_files)
-	paths.each_with_index { |match, index| match[:missing] = missing[index] }
+	missing = check_missing(checked_files.length) do
+		repo_dir = find_repo_dir(pane_dir) || pane_dir
+		pane_files = (paths + status_files).map { |match| File.expand_path(match[:text], pane_dir) }
+		top_files = repo_files.map { |match| File.expand_path(match[:text], repo_dir) }
+		pane_files + top_files
+	end
+	checked_files.each_with_index { |match, index| match[:missing] = missing[index] }
 end
 
-# Paths join the file list so every file-like hint starts with f.
-all_matches['file'].concat(paths)
+# Paths and git's file names join the ls file names so every file-like hint starts with f.
+# Sorting by screen position keeps the long ff hints on the newest output, at the bottom.
+file_matches = all_matches['file'] + checked_files
+all_matches['file'] = file_matches.sort_by { |match| [match[:row], match[:column]] }
 
 
 # ==============================================================================
