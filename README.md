@@ -91,7 +91,7 @@ M-r       command-prompt "rename-window %%"
 M-s       split-window -v -c "#{pane_current_path}" \; resize-pane -y 999
 M-v       split-window -h -c "#{pane_current_path}"
 M-w       run-shell $PLUGIN_PATH/bin/kill-pane.bash \; resize-pane -y 999
-M-y       run-shell $TMUX_PLUGINS/tmux-picker/tmux-picker.sh
+M-y       run-shell $PLUGIN_PATH/scripts/run scratchpad/popup scratchpad/yank
 M-z       set-window-option synchronize-panes off
 
 M-F5      source-file $HOME/.tmux.conf
