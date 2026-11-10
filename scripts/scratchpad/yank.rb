@@ -234,7 +234,9 @@ unless REMOTE_COMMANDS.include?(pane_command)
 	missing = check_missing(full_files)
 	paths.each_with_index { |match, index| match[:missing] = missing[index] }
 end
-all_matches['path'] = paths
+
+# Paths join the file list so every file-like hint starts with f.
+all_matches['file'].concat(paths)
 
 
 # ==============================================================================
