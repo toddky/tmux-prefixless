@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby
 # vi: ft=ruby noet ts=4 sw=0 sts=0
 # USAGE: yank [-t target-pane]
-# DESCRIPTION: Redraw a pane with two-letter hints over commands and file names; typing a hint copies that text.
+# DESCRIPTION: Redraw a pane with two-letter hints over commands, file names and paths; typing a hint copies that text.
 # Meant to run in a popup laid exactly over the pane (scratchpad/popup), so the hints sit on the text they copy.
 # Keys: a two-letter hint copies, <Esc> clears a half-typed hint, q quits.
 # After the first key only the hints that still match stay highlighted.
@@ -9,6 +9,7 @@
 require 'io/console'
 require 'open3'
 require 'optparse'
+require 'set'
 
 # ==============================================================================
 # ARGUMENTS
@@ -29,8 +30,27 @@ SHOW_CURSOR = "\e[?25h"
 RESET = "\e[0m"
 
 # The whole match is highlighted in muted blue and its hint sits on its first two cells in light blue.
+# A path that doesn't exist gets the same pair in dark and light red.
 HIGHLIGHT_COLOR = "\e[38;5;255;48;5;24m"
 HINT_COLOR = "\e[1;38;5;0;48;5;117m"
+MISSING_HIGHLIGHT_COLOR = "\e[38;5;255;48;5;124m"
+MISSING_HINT_COLOR = "\e[1;38;5;0;48;5;210m"
+
+# ls is /usr/bin/ls, see ~/.bashrc or ../tmux, not https://host/a or a/b, and /a/b.py:12 is /a/b.py
+# Absolute, ~/, ./ and ../ paths; the lookbehind skips the "/b" in "a/b" or "日本/b", and find_paths handles ":".
+PATH_PATTERN = %r{(?<![\p{Word}.~/-])(?:~|\.\.?)?/[^\s'"`:;,|()<>\[\]\{\}]*}
+
+# "/a/b." and "is it /a/b?" end a sentence, so the punctuation goes; "/a/.." and "/a/." keep their dots.
+SENTENCE_END = %r{(?<=[^./])[.?!]+\z}
+
+# Bare prefixes name no file worth copying.
+PATH_PREFIXES = Set['/', '~/', './', '../']
+
+# A pane running one of these is on another host, so local existence checks would mark its paths missing.
+REMOTE_COMMANDS = Set['ssh', 'mosh-client']
+
+# A guess: a screen of local stats takes a few milliseconds, and 0.3s is about when the popup feels slow.
+EXISTS_TIMEOUT_SECONDS = 0.3
 
 # 'q' quits, so it can't be a hint character.
 HINT_CHARACTERS = 'fdsavcxzrewtgb1234567890jklmuiopyhn'
@@ -72,16 +92,73 @@ def copy(text)
 	return nil
 end
 
-# Return { text, row, column } for each line matching regex; column is in terminal cells.
+# Return { text, row, column, missing } for each line matching regex; column is in terminal cells.
 def find_matches(lines, regex, group)
 	matches = []
 	lines.each_with_index do |line, row|
 		match = line.match(regex)
 		next unless match
 		before_match = line[0...match.begin(group)]
-		matches.append({ text: match[group], row: row, column: display_width(before_match) })
+		matches.append({ text: match[group], row: row, column: display_width(before_match), missing: false })
 	end
 	return matches
+end
+
+# find_paths(['ls is /usr/bin/ls']) -> [{ text: '/usr/bin/ls', row: 0, column: 6, missing: false }]
+# find_paths(['PATH=/a:/b see https://host/c']) -> '/a' and '/b' only
+def find_paths(lines)
+	matches = []
+	lines.each_with_index do |line, row|
+		previous_end = nil
+		line.scan(PATH_PATTERN) do
+			match = Regexp.last_match
+			start = match.begin(0)
+			# PATH=/usr/bin:/bin chains paths with ":", but "host:/a" and "https://host" are not local paths.
+			after_colon = start > 0 && line[start - 1] == ':'
+			chained = previous_end == start - 1
+			previous_end = match.end(0)
+			next if after_colon && !chained
+			text = match[0].sub(SENTENCE_END, '')
+			next if PATH_PREFIXES.include?(text)
+			column = display_width(line[0...start])
+			matches.append({ text: text, row: row, column: column, missing: false })
+		end
+	end
+	return matches
+end
+
+# check_missing(['/usr/bin/ls', '/no/such']) -> [false, true]
+# A stat on a hung NFS mount never returns, so a child does the checks and unanswered files count as present.
+def check_missing(files)
+	return [] if files.empty?
+	reader, writer = IO.pipe
+	child_pid = fork do
+		reader.close
+		writer.sync = true
+		files.each { |file| writer.puts(File.exist?(file) ? 'present' : 'missing') }
+		exit!(0)
+	end
+	writer.close
+
+	answers = []
+	deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + EXISTS_TIMEOUT_SECONDS
+	while answers.length < files.length
+		seconds_left = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+		break if seconds_left <= 0
+		break unless reader.wait_readable(seconds_left)
+		answer = reader.gets
+		break if answer.nil?
+		answers.append(answer.chomp == 'missing')
+	end
+	reader.close
+
+	if answers.length < files.length
+		num_unchecked = files.length - answers.length
+		message("WARNING: yank: path checks passed #{EXISTS_TIMEOUT_SECONDS}s, so #{num_unchecked} paths stay blue; check for a hung mount")
+		Process.kill(:KILL, child_pid)
+	end
+	Process.detach(child_pid)
+	return files.each_index.map { |index| answers.fetch(index, false) }
 end
 
 # Redraw the pane, then highlight every match whose hint starts with what has been typed so far.
@@ -95,8 +172,10 @@ def draw(colored_lines, hints, typed)
 	hints.each do |hint, match|
 		next unless hint.start_with?(typed)
 		position = "\e[#{match[:row] + 1};#{match[:column] + 1}H"
-		screen.append("#{position}#{HIGHLIGHT_COLOR}#{match[:text]}#{RESET}")
-		screen.append("#{position}#{HINT_COLOR}#{hint}#{RESET}")
+		highlight_color = match[:missing] ? MISSING_HIGHLIGHT_COLOR : HIGHLIGHT_COLOR
+		hint_color = match[:missing] ? MISSING_HINT_COLOR : HINT_COLOR
+		screen.append("#{position}#{highlight_color}#{match[:text]}#{RESET}")
+		screen.append("#{position}#{hint_color}#{hint}#{RESET}")
 	end
 	$stdout.write(screen.join)
 	$stdout.flush
@@ -107,11 +186,20 @@ end
 # ==============================================================================
 # CAPTURE PANE
 # ==============================================================================
+target_arguments = []
+target_arguments.append('-t', options[:target]) if options[:target]
+
 capture_arguments = []
 capture_arguments.append('capture-pane', '-p', '-e')
-capture_arguments.append('-t', options[:target]) if options[:target]
+capture_arguments.append(*target_arguments)
 pane_contents, error_output, status = tmux(capture_arguments)
 abort "ERROR: yank: tmux capture-pane failed (#{error_output.strip}); check that -t names a live pane" unless status.success?
+
+# The popup starts in the client's directory, so relative paths need the pane's own.
+# ssh	/home/todd/project
+pane_output, error_output, status = tmux(['display-message', '-p', *target_arguments, "\#{pane_current_command}\t\#{pane_current_path}"])
+abort "ERROR: yank: tmux display-message failed (#{error_output.strip}); check that -t names a live pane" unless status.success?
+pane_command, pane_dir = pane_output.chomp.split("\t", 2)
 
 # One entry per pane row; keep blank rows so row numbers match the pane.
 colored_lines = pane_contents.force_encoding('UTF-8').split("\n", -1)
@@ -131,6 +219,22 @@ all_matches['command'] = find_matches(lines, /\A.*»\s*(\S.*)/, 1)
 # drwxrwxrwx 1 todd group    0 Jan  1 23:59 dir/
 # -rw-r--r-- 1 todd group  10K Jan  1 23:59 file.txt
 all_matches['file'] = find_matches(lines, /\A[-dl]([-r][-w][-x]){3}.* (\S+)/, 2)
+
+# A symlink target already has a file hint, so a path that starts on a taken cell gets no second one.
+taken_cells = Set.new
+all_matches.each_value do |matches|
+	matches.each { |match| taken_cells.add([match[:row], match[:column]]) }
+end
+paths = find_paths(lines)
+paths = paths.reject { |match| taken_cells.include?([match[:row], match[:column]]) }
+
+# Only a local pane's paths can be checked, so a remote pane's paths all stay blue.
+unless REMOTE_COMMANDS.include?(pane_command)
+	full_files = paths.map { |match| File.expand_path(match[:text], pane_dir) }
+	missing = check_missing(full_files)
+	paths.each_with_index { |match, index| match[:missing] = missing[index] }
+end
+all_matches['path'] = paths
 
 
 # ==============================================================================
