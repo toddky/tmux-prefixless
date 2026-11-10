@@ -161,6 +161,17 @@ def check_missing(files)
 	return files.each_index.map { |index| answers.fetch(index, false) }
 end
 
+# hint_suffixes(3, 'f') -> ['f', 'd', 's']
+# hint_suffixes(37, 'f') -> ['d', 's', ..., 'n', 'ff', 'fd', 'fs'], so the last three hints are fff, ffd and ffs
+def hint_suffixes(num_matches, kind_character)
+	characters = HINT_CHARACTERS.chars
+	return characters.first(num_matches) if num_matches <= characters.length
+	# Past one letter per match, the kind's own letter is held back to start the longer hints, as in ff then a third key.
+	short_suffixes = characters - [kind_character]
+	long_suffixes = hint_suffixes(num_matches - short_suffixes.length, kind_character)
+	return short_suffixes + long_suffixes.map { |suffix| "#{kind_character}#{suffix}" }
+end
+
 # Redraw the pane, then highlight every match whose hint starts with what has been typed so far.
 def draw(colored_lines, hints, typed)
 	# Place every row and hint by absolute position; a stray newline on the last row would scroll the popup.
@@ -251,12 +262,11 @@ all_matches['file'].concat(paths)
 # GENERATE HINTS
 # ==============================================================================
 hints = {}
-hint_characters = HINT_CHARACTERS.chars
 all_matches.each do |kind, matches|
-	# REVISIT: Support more matches than hint characters.
-	hinted_matches = matches.first(hint_characters.length)
-	hinted_matches.each_with_index do |match, index|
-		hints["#{kind[0]}#{hint_characters[index]}"] = match
+	kind_character = kind[0]
+	suffixes = hint_suffixes(matches.length, kind_character)
+	matches.zip(suffixes).each do |match, suffix|
+		hints["#{kind_character}#{suffix}"] = match
 	end
 end
 
