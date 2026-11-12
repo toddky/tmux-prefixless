@@ -243,6 +243,7 @@ lines = colored_lines.map { |colored_line| colored_line.gsub(ANSI_ESCAPE, '') }
 # ==============================================================================
 # FIND MATCHES
 # ==============================================================================
+# Each key's first letter starts its hints (c, f, g), so a new kind needs a letter no other kind uses, and never q.
 all_matches = {}
 
 # todd 755 bin main » <command>
