@@ -1,4 +1,5 @@
 #!/usr/bin/env perl
+# UNUSED: M-y runs yank.rb through the yank symlink; edit that instead.
 # USAGE: yank [-t target-pane]
 # DESCRIPTION: Redraw a pane with two-letter hints over commands and file names; typing a hint copies that text.
 # Meant to run in a popup laid exactly over the pane (scratchpad/popup), so the hints sit on the text they copy.
