@@ -7,6 +7,7 @@
 # After the first key only the hints that still match stay highlighted.
 
 require 'io/console'
+require 'io/wait'
 require 'open3'
 require 'optparse'
 require 'set'
