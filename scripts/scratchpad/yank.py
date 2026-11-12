@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # vim: ft=python noet ts=4 sw=0 sts=0
+# UNUSED: M-y runs yank.rb through the yank symlink; edit that instead.
 """Redraw a pane with two-letter hints over commands and file names; typing a hint copies that text.
 
 USAGE: yank.py [-t target-pane]
